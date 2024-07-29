@@ -4,23 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flask-SocketIO Test</title>
+    <title>대화하기</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 
 </head>
 
 <body>
-    <h1>Flask-SocketIO Test</h1>
+    <h1>대화하기</h1>
+    
     <form onsubmit="return sendMessage();">
+        <select id="ai_option">
+            <option value="openai">openai</option>
+            <option value="gemini">gemini</option>
+            <option value="debugging">하지만 빨랐죠</option>
+        </select>
         <input type="text" id="message">
         <input type="submit" value="Send">
     </form>
 
     <button id="startRecord">Start Recording</button>
-    <button id="stopRecord" disabled>Stop Recording</button>
-    <audio id="audioPlayback" controls></audio> 1
+    <button id="stopRecord" disabled="true">Stop Recording</button>
+    <audio id="audioPlayback" controls></audio>
 
-    <div id="log"></div>
+    <div id="conversations"></div>
 
     <script type="text/javascript" charset="utf-8">
         var socket = io();
@@ -30,15 +36,21 @@
             console.log('connect start')
         });
 
-        socket.on('my_response', function (msg) {
+        socket.on('alert', function (msg) {
             console.log(msg);
-            document.getElementById('log').innerHTML += '<p>Received: ' + msg.data + '</p>';
+            document.getElementById('conversations').innerHTML += '<p>Alert: ' + msg.data + '</p>';
+        });
+
+        socket.on('ai_response', function (msg) {
+            console.log(msg);
+            document.getElementById('conversations').innerHTML += '<p>Assistant: ' + msg.data + '</p>';
         });
         
         function sendMessage() {
+            const ai_option = document.getElementById('ai_option').value
             const data = document.getElementById('message').value;
-            document.getElementById('log').innerHTML += '<p>Send: ' + data + '</p>';
-            socket.emit('my_event', { data });
+            document.getElementById('conversations').innerHTML += '<p>User: ' + data + '</p>';
+            socket.emit('user_send', { data, ai_option });
             document.getElementById('message').value = ''
             return false;
         }
@@ -76,13 +88,13 @@
         });
 
         function sendAudioToServer(blob) {
-    const reader = new FileReader();
-    reader.onload = function(event){
-        const base64Audio = event.target.result;
-        socket.emit('audio_data', base64Audio); // Send audio data as base64
-    };
-    reader.readAsDataURL(blob);
-}
+            const reader = new FileReader();
+            reader.onload = function(event){
+                const base64Audio = event.target.result;
+                socket.emit('audio_data', base64Audio); // Send audio data as base64
+            };
+            reader.readAsDataURL(blob);
+        }
 
     </script>
 </body>
