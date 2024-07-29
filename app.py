@@ -4,7 +4,10 @@ import google.generativeai as genai
 from flask_socketio import SocketIO, emit
 import openai_api_key, gemini_api_key, oracle_configs
 import oracledb
-import sys
+import sys, base64
+import io, wave
+from pydub import AudioSegment
+
 
 # API 키 설정
 client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
@@ -68,26 +71,46 @@ def handle_user_msg(obj):
         response = get_gemini_message(obj['data'])
     else:
         response = "어쩔티비 안물안궁"
-    upsert_chat_history('chat_table', 'assistant', response)
+    upsert_chat_history('chat_table', 'model', response)
     messages.append(('assistant', response))
+    txt2voice(response, 'tmp.wav')
+    with open('tmp.wav', 'rb') as audio_file:
+        audio_data = audio_file.read()
+        # 음성 데이터를 base64로 인코딩
+        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
     
-    d = {}
-    d['data'] = response
-
-    emit('ai_response', d)
+    emit('ai_response', {'data': response, 'audio': audio_base64})
 
 @socketio.on('audio_data')
 def handle_user_audio(obj):
-    pass
+    audio_obj = base64.b64decode(obj.split(',')[-1])
+    audio_io = io.BytesIO(audio_obj)
 
-def txt2voice(txt):
-    speech_file_path = f"./audio_files/created_.wav"
+    # sys.path.append('/path/to/ffmpeg')
+    audio = AudioSegment.from_file(audio_io, format="webm")
+
+    # Export as WAV
+    audio.export('tmp.wav', format="wav")
+    txt = voice2txt('tmp.wav')
+    print(txt)
+    
+    emit('user_input', {'data': txt})
+
+def voice2txt(audio_file):
+    with open(audio_file, 'rb') as f:
+        transcript = client.audio.transcriptions.create(
+        model="whisper-1",
+        file=f
+        )
+    return transcript.text
+
+def txt2voice(txt, file_path):
     response = client.audio.speech.create(
     model="tts-1",
     voice="alloy",
     input=txt
     )
-    response.stream_to_file(speech_file_path)
+    response.stream_to_file(file_path)
     return response
 
 def apply_chat_template(ai_option='openai'):
@@ -103,7 +126,7 @@ def apply_chat_template(ai_option='openai'):
         if ai_option == 'openai':
             chat_template.append({'role': m[0], 'content': m[1]})
         elif ai_option == 'gemini':
-            chat_template.append({'role': m[0], 'parts': {'text': m[1]}})
+            chat_template.append({'role': m[0] if m[0] == 'user' else 'model', 'parts': m[1]})
     return chat_template
 
 def get_gemini_message(msg):
@@ -115,7 +138,10 @@ def get_gemini_message(msg):
                                 temperature=0.5,
                     ))
     chat = model.start_chat(history=apply_chat_template('gemini'))
+    print(chat.history)
+    global messages
     response = chat.send_message(msg)
+    messages.append(('user', msg))
     return response.text
 
 
@@ -131,6 +157,8 @@ def get_openai_message(msg):
         max_tokens=128,
         top_p=0.8
     )
+    messages.pop(0)
+    print(apply_chat_template('openai'))
     print('>>>>', response.choices[0].message.content)
     return response.choices[0].message.content
 
