@@ -1,21 +1,11 @@
 from flask import Flask, request, render_template
 from openai import OpenAI
 from flask_socketio import SocketIO, emit
-import openai_api_key
-import oracle_configs
+import openai_api_key, oracle_configs
 import oracledb
-import atexit
+import sys
 
 
-connection = oracledb.connect(**oracle_configs.ORACLE_CONFIG)
-
-cursor = connection.cursor()
-
-def cleanup_function():
-    cursor.close()
-    connection.close()
-
-atexit.register(cleanup_function)
 # API 키 설정
 client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
 
@@ -26,29 +16,57 @@ app = Flask(__name__)
 # websocket connection
 socketio = SocketIO(app)
 
+messages = None
+
+def upsert_chat_history(table_name, role, message):
+    connection = None
+    cursor = None
+    try:
+        # Establish connection
+        connection = oracledb.connect(**oracle_configs.ORACLE_CONFIG)
+        
+        # Create a cursor
+        cursor = connection.cursor()
+        
+        # Execute SQL command
+        cursor.execute(f"""
+            INSERT INTO {table_name} (user_id, chat)
+            VALUES (:user_id, :chat)
+        """, {"user_id": 1, "chat": message})
+        
+        # Commit the transaction
+        connection.commit()
+        
+    except oracledb.DatabaseError as e:
+        print(f"Database error occurred: {e}", file=sys.stderr)
+        if connection:
+            connection.rollback()
+    finally:
+        # Close cursor and connection
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
 @socketio.on('connect')
-def test_connect():
+def connected():
+    global messages
+    messages = [("system", "You are an assistant for elderly people with dementia. All you have to do is talk to them affectionately, like you would their children. And you must speak in Korean.")]
+    
     emit('my_response', {'data': 'Connected'})
 
 @socketio.on('my_event')
 def handle_my_custom_event(obj):
-    print('received json: ' + str(obj))
-    cursor.execute(f"""
-    insert into chat_table (chat,  user_id)
-    values (:sent_msg, 1)
-    """, sent_msg=obj['data'])
+    upsert_chat_history('chat_table', 'user', obj['data'])
     
-    response = get_openai(obj['data'])
-    print(response)
-    cursor.execute(f"""
-    insert into chat_table (chat,  user_id)
-    values (:response, 0)
-    """, response=response)
+    messages.append(('user', obj['data']))
+    response = get_openai_message()
+    upsert_chat_history('chat_table', 'assistant', response)
+    messages.append(('assistant', response))
+    
     d = {}
     d['data'] = response
-    connection.commit()
-    
-
 
     emit('my_response', d)
 
@@ -62,23 +80,32 @@ def txt2voice(txt):
     response.stream_to_file(speech_file_path)
     return response
 
-def get_openai(msg):
+def apply_openai_chat_template():
+    # [
+    #         {
+    #             "role": "system",
+    #             "content": "You are an assistant for elderly people with dementia. All you have to do is talk to them affectionately, like you would their children. And you must speak in Korean."
+    #         },
+    #         {
+    #             "role": "user",
+    #             "content": msg
+    #         }
+    #     ]
+    chat_template = []
+    global messages
+    for m in messages:
+        chat_template.append({'role': m[0], 'content': m[1]})
+    print(chat_template)
+    return chat_template
+
+def get_openai_message():
     # Create a chat completion
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[
-            {
-                "role": "system",
-                "content": "You are an assistant for elderly people with dementia. All you have to do is talk to them affectionately, like you would their children."
-            },
-            {
-                "role": "user",
-                "content": msg
-            }
-        ],
+        messages=apply_openai_chat_template(),
         temperature=0.7,
-        max_tokens=64,
-        top_p=1
+        max_tokens=128,
+        top_p=0.8
     )
     print('>>>>', response.choices[0].message.content)
     return response.choices[0].message.content

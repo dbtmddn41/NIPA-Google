@@ -26,17 +26,20 @@
         var socket = io();
 
         socket.on('connect', function () {
-            socket.emit('my_event', { data: 'I\'m connected!' });
+            //socket.emit('connect', { data: 'I\'m connected!' });
+            console.log('connect start')
         });
 
         socket.on('my_response', function (msg) {
             console.log(msg);
             document.getElementById('log').innerHTML += '<p>Received: ' + msg.data + '</p>';
         });
+        
         function sendMessage() {
             const data = document.getElementById('message').value;
             document.getElementById('log').innerHTML += '<p>Send: ' + data + '</p>';
             socket.emit('my_event', { data });
+            document.getElementById('message').value = ''
             return false;
         }
 
