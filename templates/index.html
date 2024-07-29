@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask-SocketIO Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+</head>
+
+<body>
+    <h1>Flask-SocketIO Test</h1>
+    <form onsubmit="return sendMessage();">
+        <input type="text" id="message">
+        <input type="submit" value="Send">
+    </form>
+
+    <button id="startRecord">Start Recording</button>
+    <button id="stopRecord" disabled>Stop Recording</button>
+    <audio id="audioPlayback" controls></audio> 1
+
+    <div id="log"></div>
+
+    <script type="text/javascript" charset="utf-8">
+        var socket = io();
+
+        socket.on('connect', function () {
+            socket.emit('my_event', { data: 'I\'m connected!' });
+        });
+
+        socket.on('my_response', function (msg) {
+            console.log(msg);
+            document.getElementById('log').innerHTML += '<p>Received: ' + msg.data + '</p>';
+        });
+        function sendMessage() {
+            const data = document.getElementById('message').value;
+            document.getElementById('log').innerHTML += '<p>Send: ' + data + '</p>';
+            socket.emit('my_event', { data });
+            return false;
+        }
+
+        let mediaRecorder;
+        let audioChunks = [];
+
+        document.getElementById('startRecord').addEventListener('click', async () => {
+            // Request user permission for audio
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                document.getElementById('audioPlayback').src = audioUrl;
+
+                // Send the audioBlob to the server
+                sendAudioToServer(audioBlob);
+            };
+
+            mediaRecorder.start();
+            document.getElementById('startRecord').disabled = true;
+            document.getElementById('stopRecord').disabled = false;
+        });
+
+        document.getElementById('stopRecord').addEventListener('click', () => {
+            mediaRecorder.stop();
+            document.getElementById('startRecord').disabled = false;
+            document.getElementById('stopRecord').disabled = true;
+        });
+
+        function sendAudioToServer(blob) {
+    const reader = new FileReader();
+    reader.onload = function(event){
+        const base64Audio = event.target.result;
+        socket.emit('audio_data', base64Audio); // Send audio data as base64
+    };
+    reader.readAsDataURL(blob);
+}
+
+    </script>
+</body>
+
+</html>
