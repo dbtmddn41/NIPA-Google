@@ -1,113 +1,121 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Voice Chat</title>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/recorder-js/1.1.1/recorder.js"></script>
-    <style>
-        #responseBox {
-            height: 300px;
-            overflow-y: scroll;
-            border: 1px solid #ddd;
-            padding: 10px;
-            margin-bottom: 20px;
-        }
-        .user-message, .assistant-message, .system-message {
-            margin-bottom: 10px;
-            padding: 8px;
-            border-radius: 5px;
-        }
-        .user-message {
-            background-color: #e0f7fa;
-            text-align: right;
-        }
-        .assistant-message {
-            background-color: #e8f5e9;
-        }
-        .system-message {
-            background-color: #f3e5f5;
-            font-style: italic;
-        }
-    </style>
-    <script>
-        var socket = io();
-        var recorder;
-        var audioChunks = [];
+<html lang="en">
 
-        socket.on('connect', function() {
-            console.log('Connected to server');
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대화하기</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+</head>
+
+<body>
+    <h1>대화하기</h1>
+    
+    <form onsubmit="return sendMessage();">
+        <select id="ai_option">
+            <option value="openai">openai</option>
+            <option value="gemini">gemini</option>
+            <option value="debugging">하지만 빨랐죠</option>
+        </select>
+        <input type="text" id="message">
+        <input type="submit" value="Send">
+    </form>
+
+    <button id="startRecord">Start Recording</button>
+    <button id="stopRecord" disabled="true">Stop Recording</button>
+    <!--<audio id="audioPlayback" controls></audio>-->
+
+    <div id="conversations"></div>
+
+    <script type="text/javascript" charset="utf-8">
+        var socket = io();
+
+        socket.on('connect', function () {
+            //socket.emit('connect', { data: 'I\'m connected!' });
+            console.log('connect start');
         });
 
-        function startRecording() {
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(stream => {
-                    recorder = new Recorder(stream);
-                    recorder.record();
-                    document.getElementById('recordButton').disabled = true;
-                    document.getElementById('stopButton').disabled = false;
-                })
-                .catch(error => {
-                    console.error('Error accessing microphone:', error);
-                    alert('마이크 접근 권한을 허용해주세요.');
-                });
+        socket.on('alert', function (msg) {
+            console.log(msg);
+            document.getElementById('conversations').innerHTML += '<p>Alert: ' + msg.data + '</p>';
+        });
+
+        socket.on('ai_response', function (msg) {
+            console.log(msg);
+            const conversations = document.getElementById('conversations');
+            conversations.innerHTML += '<p>Assistant: ' + msg.data + '</p>';
+            const audioElement = document.createElement("audio");
+            audioElement.src = 'data:audio/mp3;base64,'+msg.audio; // 오디오 파일 경로 설정
+            audioElement.controls = false; // 재생 컨트롤 표시
+            audioElement.autoplay = true; // 자동 재생 여부 설정
+            audioElement.loop = false; // 반복 재생 여부 설정
+            audioElement.addEventListener('ended', () => {
+                audioElement.removeAttribute('autoplay');
+              });
+            conversations.appendChild(audioElement);
+        });
+
+        socket.on('user_input', function(msg) {
+            console.log(msg);
+            const ai_option = document.getElementById('ai_option').value;
+            const data = msg.data;
+            document.getElementById('conversations').innerHTML += '<p>User: ' + data + '</p>';
+            socket.emit('user_send', { data, ai_option });
+        })
+        
+        function sendMessage() {
+            const ai_option = document.getElementById('ai_option').value;
+            const data = document.getElementById('message').value;
+            document.getElementById('conversations').innerHTML += '<p>User: ' + data + '</p>';
+            socket.emit('user_send', { data, ai_option });
+            document.getElementById('message').value = '';
+            return false;
         }
 
-        function stopRecording() {
-            recorder.stop();
-            document.getElementById('recordButton').disabled = false;
-            document.getElementById('stopButton').disabled = true;
-            recorder.exportWAV(sendAudioChunk);
-        }
+        let mediaRecorder;
+        let audioChunks = [];
 
-        function sendAudioChunk(blob) {
-            var reader = new FileReader();
-            reader.onload = function(event) {
-                socket.emit('audio_data', event.target.result);
+        document.getElementById('startRecord').addEventListener('click', async () => {
+            // Request user permission for audio
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                // document.getElementById('audioPlayback').src = audioUrl;
+
+                // Send the audioBlob to the server
+                sendAudioToServer(audioBlob);
+                audioChunks = [];
+            };
+
+            mediaRecorder.start();
+            document.getElementById('startRecord').disabled = true;
+            document.getElementById('stopRecord').disabled = false;
+        });
+
+        document.getElementById('stopRecord').addEventListener('click', () => {
+            mediaRecorder.stop();
+            document.getElementById('startRecord').disabled = false;
+            document.getElementById('stopRecord').disabled = true;
+        });
+
+        function sendAudioToServer(blob) {
+            const reader = new FileReader();
+            reader.onload = function(event){
+                const base64Audio = event.target.result;
+                socket.emit('audio_data', base64Audio); // Send audio data as base64
             };
             reader.readAsDataURL(blob);
         }
 
-        function sendMessage() {
-            var messageInput = document.getElementById('messageInput');
-            var message = messageInput.value;
-            if (message.trim() !== '') {
-                socket.emit('user_send', { data: message, ai_option: 'openai' });
-                messageInput.value = '';
-                displayMessage('user', message);
-            }
-        }
-
-        socket.on('ai_response', function (msg) {
-            displayMessage('assistant', msg.data, msg.audio);
-        });
-
-        function displayMessage(source, message, audioData) {
-            var responseBox = document.getElementById('responseBox');
-            var newMessage = document.createElement('div');
-            newMessage.classList.add(source + '-message');
-
-            var textElement = document.createElement('p');
-            textElement.textContent = message;
-            newMessage.appendChild(textElement);
-
-            // 챗봇 메시지인 경우에만 오디오 플레이어 추가
-            if (source === 'assistant' && audioData) {
-                var audioPlayer = document.createElement('audio');
-                audioPlayer.controls = true;
-                audioPlayer.src = 'data:audio/wav;base64,' + audioData;
-                newMessage.appendChild(audioPlayer);
-            }
-
-            responseBox.appendChild(newMessage);
-            responseBox.scrollTop = responseBox.scrollHeight;
-        }
     </script>
-</head>
-<body>
-    <div id="responseBox"></div>
-    <button onclick="startRecording()" id="recordButton">Start Recording</button>
-    <button onclick="stopRecording()" id="stopButton" disabled>Stop Recording</button>
-    <input type="text" id="messageInput" placeholder="Type your message here" />
-    <button onclick="sendMessage()">Send Message</button>
 </body>
+
 </html>

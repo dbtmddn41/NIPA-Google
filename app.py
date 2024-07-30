@@ -73,8 +73,8 @@ def handle_user_msg(obj):
         response = "어쩔티비 안물안궁"
     upsert_chat_history('chat_table', 'model', response)
     messages.append(('assistant', response))
-    txt2voice(response, 'tmp.wav')
-    with open('tmp.wav', 'rb') as audio_file:
+    txt2voice(response, './tmp/tmp.wav')
+    with open('./tmp/tmp.wav', 'rb') as audio_file:
         audio_data = audio_file.read()
         # 음성 데이터를 base64로 인코딩
         audio_base64 = base64.b64encode(audio_data).decode('utf-8')
@@ -90,8 +90,8 @@ def handle_user_audio(obj):
     audio = AudioSegment.from_file(audio_io, format="webm")
 
     # Export as WAV
-    audio.export('tmp.wav', format="wav")
-    txt = voice2txt('tmp.wav')
+    audio.export('./tmp/tmp.wav', format="wav")
+    txt = voice2txt('./tmp/tmp.wav')
     print(txt)
     
     emit('user_input', {'data': txt})
