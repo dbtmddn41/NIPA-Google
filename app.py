@@ -28,10 +28,8 @@ def upsert_chat_history(table_name, role, message):
     try:
         # Establish connection
         connection = oracledb.connect(**oracle_configs.ORACLE_CONFIG)
-        
         # Create a cursor
         cursor = connection.cursor()
-        
         # Execute SQL command
         cursor.execute(f"""
             INSERT INTO {table_name} (user_id, chat)
@@ -63,7 +61,6 @@ def connected():
 @socketio.on('user_send')
 def handle_user_msg(obj):
     print(obj)
-    upsert_chat_history('chat_table', 'user', obj['data'])
     
     if obj['ai_option'] == 'openai':
         response = get_openai_message(obj['data'])
@@ -71,7 +68,6 @@ def handle_user_msg(obj):
         response = get_gemini_message(obj['data'])
     else:
         response = "어쩔티비 안물안궁"
-    upsert_chat_history('chat_table', 'model', response)
     messages.append(('assistant', response))
     txt2voice(response, './tmp/tmp.wav')
     with open('./tmp/tmp.wav', 'rb') as audio_file:
@@ -80,6 +76,8 @@ def handle_user_msg(obj):
         audio_base64 = base64.b64encode(audio_data).decode('utf-8')
     
     emit('ai_response', {'data': response, 'audio': audio_base64})
+    upsert_chat_history('chat_table', 'user', obj['data'])
+    upsert_chat_history('chat_table', 'model', response)
 
 @socketio.on('audio_data')
 def handle_user_audio(obj):
