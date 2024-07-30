@@ -22,7 +22,7 @@ socketio = SocketIO(app)
 
 messages = None
 
-def upsert_chat_history(table_name, role, message):
+def upsert_chat_history(table_name, **datas):
     connection = None
     cursor = None
     try:
@@ -32,9 +32,10 @@ def upsert_chat_history(table_name, role, message):
         cursor = connection.cursor()
         # Execute SQL command
         cursor.execute(f"""
-            INSERT INTO {table_name} (user_id, chat)
-            VALUES (:user_id, :chat)
-        """, {"user_id": 1, "chat": message})
+            INSERT INTO {table_name} (chat_id, message, is_bot_message)
+            VALUES (:chat_id, :message, :is_bot_message)
+        """, {"chat_id": datas['chat_id'], 'message': datas['message'], 
+              "is_bot_message": datas['is_bot_message']})
         
         # Commit the transaction
         connection.commit()
@@ -64,10 +65,13 @@ def handle_user_msg(obj):
     
     if obj['ai_option'] == 'openai':
         response = get_openai_message(obj['data'])
+        ai_id = 1
     elif obj['ai_option'] == 'gemini':
         response = get_gemini_message(obj['data'])
+        ai_id = 2
     else:
         response = "어쩔티비 안물안궁"
+        ai_id = 3
     messages.append(('assistant', response))
     txt2voice(response, './tmp/tmp.wav')
     with open('./tmp/tmp.wav', 'rb') as audio_file:
@@ -76,8 +80,10 @@ def handle_user_msg(obj):
         audio_base64 = base64.b64encode(audio_data).decode('utf-8')
     
     emit('ai_response', {'data': response, 'audio': audio_base64})
-    upsert_chat_history('chat_table', 'user', obj['data'])
-    upsert_chat_history('chat_table', 'model', response)
+    upsert_chat_history('message_table', chat_id='1',
+                        message=obj['data'], is_bot_message=0)
+    upsert_chat_history('message_table', chat_id='1',
+                        message=response, is_bot_message=ai_id)
 
 @socketio.on('audio_data')
 def handle_user_audio(obj):
