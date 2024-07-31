@@ -4,42 +4,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flask-SocketIO Test</title>
+    <title>대화하기</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 
 </head>
 
 <body>
-    <h1>Flask-SocketIO Test</h1>
+    <h1>대화하기</h1>
+    
     <form onsubmit="return sendMessage();">
+        <select id="ai_option">
+            <option value="openai">openai</option>
+            <option value="gemini">gemini</option>
+            <option value="debugging">하지만 빨랐죠</option>
+        </select>
         <input type="text" id="message">
         <input type="submit" value="Send">
     </form>
 
     <button id="startRecord">Start Recording</button>
-    <button id="stopRecord" disabled>Stop Recording</button>
-    <audio id="audioPlayback" controls></audio> 1
+    <button id="stopRecord" disabled="true">Stop Recording</button>
+    <!--<audio id="audioPlayback" controls></audio>-->
 
-    <div id="log"></div>
+    <div id="conversations"></div>
 
     <script type="text/javascript" charset="utf-8">
         var socket = io();
 
         socket.on('connect', function () {
             //socket.emit('connect', { data: 'I\'m connected!' });
-            console.log('connect start')
+            console.log('connect start');
         });
 
-        socket.on('my_response', function (msg) {
+        socket.on('alert', function (msg) {
             console.log(msg);
-            document.getElementById('log').innerHTML += '<p>Received: ' + msg.data + '</p>';
+            document.getElementById('conversations').innerHTML += '<p>Alert: ' + msg.data + '</p>';
         });
+
+        socket.on('ai_response', function (msg) {
+            console.log(msg);
+            const conversations = document.getElementById('conversations');
+            conversations.innerHTML += '<p>Assistant: ' + msg.data + '</p>';
+            const audioElement = document.createElement("audio");
+            audioElement.src = 'data:audio/mp3;base64,'+msg.audio; // 오디오 파일 경로 설정
+            audioElement.controls = false; // 재생 컨트롤 표시
+            audioElement.autoplay = true; // 자동 재생 여부 설정
+            audioElement.loop = false; // 반복 재생 여부 설정
+            audioElement.addEventListener('ended', () => {
+                audioElement.removeAttribute('autoplay');
+              });
+            conversations.appendChild(audioElement);
+        });
+
+        socket.on('user_input', function(msg) {
+            console.log(msg);
+            const ai_option = document.getElementById('ai_option').value;
+            const data = msg.data;
+            document.getElementById('conversations').innerHTML += '<p>User: ' + data + '</p>';
+            socket.emit('user_send', { data, ai_option });
+        })
         
         function sendMessage() {
+            const ai_option = document.getElementById('ai_option').value;
             const data = document.getElementById('message').value;
-            document.getElementById('log').innerHTML += '<p>Send: ' + data + '</p>';
-            socket.emit('my_event', { data });
-            document.getElementById('message').value = ''
+            document.getElementById('conversations').innerHTML += '<p>User: ' + data + '</p>';
+            socket.emit('user_send', { data, ai_option });
+            document.getElementById('message').value = '';
             return false;
         }
 
@@ -58,10 +88,11 @@
             mediaRecorder.onstop = () => {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
                 const audioUrl = URL.createObjectURL(audioBlob);
-                document.getElementById('audioPlayback').src = audioUrl;
+                // document.getElementById('audioPlayback').src = audioUrl;
 
                 // Send the audioBlob to the server
                 sendAudioToServer(audioBlob);
+                audioChunks = [];
             };
 
             mediaRecorder.start();
@@ -76,13 +107,13 @@
         });
 
         function sendAudioToServer(blob) {
-    const reader = new FileReader();
-    reader.onload = function(event){
-        const base64Audio = event.target.result;
-        socket.emit('audio_data', base64Audio); // Send audio data as base64
-    };
-    reader.readAsDataURL(blob);
-}
+            const reader = new FileReader();
+            reader.onload = function(event){
+                const base64Audio = event.target.result;
+                socket.emit('audio_data', base64Audio); // Send audio data as base64
+            };
+            reader.readAsDataURL(blob);
+        }
 
     </script>
 </body>
