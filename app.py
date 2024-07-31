@@ -7,7 +7,6 @@ import oracledb
 import sys, base64
 import io, wave
 from pydub import AudioSegment
-import time
 
 # API 키 설정
 client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
