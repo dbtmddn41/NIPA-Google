@@ -42,6 +42,7 @@ def text_embedding_bge(text):
 
 # Oracle DB 연결
 connection = oracledb.connect(**oracle_configs.ORACLE_CONFIG)
+
 print("Successfully connected to Oracle Database")
 cursor = connection.cursor()
 
