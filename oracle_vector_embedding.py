@@ -20,7 +20,7 @@ import numpy as np
 from scipy.spatial.distance import cosine
 import faiss
 
-# embedding model 1 : llama-2-ko-7b
+## embedding model 1 : llama-2-ko-7b
 # tokenizer = AutoTokenizer.from_pretrained("beomi/llama-2-ko-7b")
 # model = AutoModel.from_pretrained("beomi/llama-2-ko-7b")
 # model = model.to('cpu')
@@ -32,7 +32,7 @@ import faiss
 #     # model(seq_ids)['last_hidden_state'].shape == torch.Size([1, 13, 4096]) => token 하나 당 4096 차원의 벡터이고, 13 token 으로 이루어진 문장
 #     return embedding
 
-# embedding model 2 : bge-m3
+## embedding model 2 : bge-m3
 model = BGEM3FlagModel('BAAI/bge-m3',  
                        use_fp16=True) # Setting use_fp16 to True speeds up computation with a slight performance degradation
 def text_embedding_bge(text):
