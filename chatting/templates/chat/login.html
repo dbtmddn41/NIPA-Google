@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+        socket.on('redirect', data => {
+            window.location.href = data.url;
+        });
+    </script>
+</head>
+<body>
+    <h1>로그인</h1>
+    <form method="POST" action="/login">
+        <label for="username">이름:</label>
+        <input type="text" id="username" name="username" required><br><br>
+
+        <label for="sex">성별:</label>
+        <input type="text" id="sex" name="sex" required><br><br>
+
+        <label for="age">나이:</label>
+        <input type="number" id="age" name="age" min="1" required><br><br>
+
+        <input type="submit" value="로그인">
+    </form>
+</body>
+</html>
