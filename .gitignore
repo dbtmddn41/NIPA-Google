@@ -3,3 +3,7 @@ openai_api_key.py
 oracle_configs.py
 tmp/*
 Wallet_MLDB
+
+# dotenv
+.env
+.idea/
