@@ -1,57 +1,28 @@
-from flask import Flask, request, render_template
 from openai import OpenAI
 import google.generativeai as genai
-from flask_socketio import SocketIO, emit
-import openai_api_key, gemini_api_key, oracle_configs
-import oracledb
-import sys, base64
-import io, wave
+import openai_api_key, gemini_api_key
+from flask_socketio import emit
+from flask import session
+import io, base64
 from pydub import AudioSegment
 
+from chating import socketio, db
+from chating.models import message_table, chat_table, user_table
 
-# API 키 설정
 client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
 genai.configure(api_key=gemini_api_key.GEMINI_API_KEY)
+messages = []
 
-# app
-app = Flask(__name__)
-# app.config['SECRET_KEY'] = 'your-secret-key-123'
-
-# websocket connection
-socketio = SocketIO(app)
-
-messages = None
-
-def upsert_chat_history(table_name, **datas):
-    connection = None
-    cursor = None
-    try:
-        # Establish connection
-        connection = oracledb.connect(**oracle_configs.ORACLE_CONFIG)
-        # Create a cursor
-        cursor = connection.cursor()
-        # Execute SQL command
-        cursor.execute(f"""
-            INSERT INTO {table_name} (chat_id, message, is_bot_message)
-            VALUES (:chat_id, :message, :is_bot_message)
-        """, {"chat_id": datas['chat_id'], 'message': datas['message'], 
-              "is_bot_message": datas['is_bot_message']})
-        
-        # Commit the transaction
-        connection.commit()
-        
-    except oracledb.DatabaseError as e:
-        print(f"Database error occurred: {e}", file=sys.stderr)
-        if connection:
-            connection.rollback()
-    finally:
-        # Close cursor and connection
-        if cursor:
-            cursor.close()
-        if connection:
-            connection.close()
-
-
+def upsert_chat_history(table, **datas):
+    chat = chat_table.query.get_or_404(datas['chat_id'])
+    user = user_table.query.get_or_404(datas['user_id'])
+    msg = message_table(user_id=datas['user_id'], chat_id=datas['chat_id'],
+                        message=datas['message'], is_bot_message=datas['is_bot_message'], 
+                        chat=chat, user=user)
+    db.session.add(msg)
+    db.session.commit()
+    
+    
 @socketio.on('connect')
 def connected():
     global messages
@@ -61,8 +32,9 @@ def connected():
 
 @socketio.on('user_send')
 def handle_user_msg(obj):
-    print(obj)
-    
+    print(socketio.__dir__)
+    user_id = 5#session['user_id']
+    chat_id = 1#session['chat_id']
     if obj['ai_option'] == 'openai':
         response = get_openai_message(obj['data'])
         ai_id = 1
@@ -80,9 +52,9 @@ def handle_user_msg(obj):
         audio_base64 = base64.b64encode(audio_data).decode('utf-8')
     
     emit('ai_response', {'data': response, 'audio': audio_base64})
-    upsert_chat_history('message_table', chat_id='1',
+    upsert_chat_history('message_table', user_id=user_id, chat_id=chat_id,
                         message=obj['data'], is_bot_message=0)
-    upsert_chat_history('message_table', chat_id='1',
+    upsert_chat_history('message_table', user_id=user_id, chat_id=chat_id,
                         message=response, is_bot_message=ai_id)
 
 @socketio.on('audio_data')
@@ -99,7 +71,7 @@ def handle_user_audio(obj):
     print(txt)
     
     emit('user_input', {'data': txt})
-
+    
 def voice2txt(audio_file):
     with open(audio_file, 'rb') as f:
         transcript = client.audio.transcriptions.create(
@@ -165,11 +137,3 @@ def get_openai_message(msg):
     print(apply_chat_template('openai'))
     print('>>>>', response.choices[0].message.content)
     return response.choices[0].message.content
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-
-if __name__ == '__main__':
-    app.run(debug=True)

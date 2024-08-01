@@ -26,7 +26,10 @@
     <button id="stopRecord" disabled="true">Stop Recording</button>
     <!--<audio id="audioPlayback" controls></audio>-->
 
-    <div id="conversations"></div>
+    <div id="conversations">
+        {% block content %}
+        {% endblock %}
+    </div>
 
     <script type="text/javascript" charset="utf-8">
         var socket = io();
