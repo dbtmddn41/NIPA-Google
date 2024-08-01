@@ -19,8 +19,8 @@ app.secret_key = 'nipa-google'
 # websocket connection
 socketio = SocketIO(app)
 
-messages = {}
-chat_ids = {} 
+messages = []
+# chat_ids = {} 
 
 def upsert_chat_history(table_name, **datas):
     connection = None
@@ -54,25 +54,15 @@ def upsert_chat_history(table_name, **datas):
 
 @socketio.on('connect')
 def connected():
-    global messages, chat_ids
-    if 'user_id' in session:
+    global messages
+    if 'user_id' in session and 'chat_id' in session:
         user_id = session['user_id']
-        if user_id not in chat_ids:
-            messages= []
-            # 챗 테이블에 새로운 행 추가 및 chat_id 저장
-            with oracledb.connect(**oracle_configs.ORACLE_CONFIG) as connection:
-                with connection.cursor() as cursor:
-                    cursor.execute("INSERT INTO CHAT_TABLE (USER_ID) VALUES (:1)", (user_id,))
-                    chat_ids[user_id] = cursor.lastrowid
-                    connection.commit()  # 변경 사항 커밋
-                    cursor.execute("SELECT CHAT_ID FROM CHAT_TABLE WHERE USER_ID = :1", (user_id,))
-                    chat_id = cursor.fetchone()[0]
-                    session['chat_id'] = chat_id  
-                    print('chat_id: ', chat_id)
-        else:
-            session['chat_id'] = chat_ids[user_id]  # 기존 chat_id 가져오기
-            print('chat_id: ', session['chat_id'])
+        chat_id = session['chat_id']
+        print('user_id2: ', user_id)
+        print('chat_id2: ', chat_id)
         emit('alert', {'data': '로그인 성공!'})
+    else:
+        emit('alert', {'data': '로그인 정보가 없습니다.'})
 
 @socketio.on('user_send')
 def handle_user_msg(obj):
@@ -198,15 +188,31 @@ def login():
         try:
             connection = oracledb.connect(**oracle_configs.ORACLE_CONFIG)
             cursor = connection.cursor()
-            cursor.execute(
+
+            cursor.execute("SELECT USER_ID FROM USER_TABLE WHERE USER_NAME = :1", (username,))
+            result = cursor.fetchone()
+
+            if result:
+                user_id = result[0]
+            else:
+
+                cursor.execute(
                     "INSERT INTO USER_TABLE (USER_NAME, SEX, AGE) VALUES (:1, :2, :3)",
                     (username, sex, age)
-                    )
-            connection.commit()
-            cursor.execute("SELECT USER_ID FROM USER_TABLE WHERE USER_NAME = :1", (username,))
-            user_id = cursor.fetchone()[0]
+                )
+                connection.commit()
+                cursor.execute("SELECT USER_ID FROM USER_TABLE WHERE USER_NAME = :1", (username,))
+                user_id = cursor.fetchone()[0]
             print('user_id',user_id)
+            session.clear() 
             session['user_id'] = user_id  
+            cursor.execute("INSERT INTO CHAT_TABLE (USER_ID) VALUES (:1)", (user_id,))
+            # chat_ids[user_id] = cursor.lastrowid
+            connection.commit()
+            cursor.execute("SELECT CHAT_ID FROM CHAT_TABLE WHERE USER_ID = :1", (user_id,))
+            chat_id = cursor.fetchone()[0]
+            session['chat_id'] = chat_id  
+            print('chat_id: ', chat_id)
             return redirect(url_for('chat'))
         except oracledb.DatabaseError as e:
             print(f"Database error occurred: {e}", file=sys.stderr)
