@@ -1,0 +1,8 @@
+{% extends 'chat/chatting_room_base.html' %}
+{% block content %}
+    {% if messages %}
+            {% for message in messages %}
+                <p>{{ "Assistant" if message.is_bot_message else 'User' }} : {{message.message}}</p>
+            {% endfor %}
+    {% endif %}
+{% endblock %}

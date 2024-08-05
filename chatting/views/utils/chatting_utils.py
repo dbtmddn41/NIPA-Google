@@ -1,57 +1,29 @@
 from flask import Flask, request, render_template, redirect, url_for, session
 from openai import OpenAI
 import google.generativeai as genai
-from flask_socketio import SocketIO, emit
-import openai_api_key, gemini_api_key, oracle_configs
-import oracledb
-import sys, base64
-import io, wave
+import openai_api_key, gemini_api_key
+from flask_socketio import emit
+from flask import session
+import io, base64
 from pydub import AudioSegment
 
-# API 키 설정
+from chatting import socketio, db
+from chatting.models import message_table, chat_table, user_table
+
 client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
 genai.configure(api_key=gemini_api_key.GEMINI_API_KEY)
-
-# app
-app = Flask(__name__)
-# app.config['SECRET_KEY'] = 'your-secret-key-123'
-app.secret_key = 'nipa-google'
-# websocket connection
-socketio = SocketIO(app)
-
 messages = []
-# chat_ids = {} 
 
-def upsert_chat_history(table_name, **datas):
-    connection = None
-    cursor = None
-    try:
-        # Establish connection
-        connection = oracledb.connect(**oracle_configs.ORACLE_CONFIG)
-        # Create a cursor
-        cursor = connection.cursor()
-        # Execute SQL command
-        cursor.execute(f"""
-            INSERT INTO {table_name} (chat_id, message, is_bot_message)
-            VALUES (:chat_id, :message, :is_bot_message)
-        """, {"chat_id": datas['chat_id'], 'message': datas['message'], 
-              "is_bot_message": datas['is_bot_message']})
-        
-        # Commit the transaction
-        connection.commit()
-        
-    except oracledb.DatabaseError as e:
-        print(f"Database error occurred: {e}", file=sys.stderr)
-        if connection:
-            connection.rollback()
-    finally:
-        # Close cursor and connection
-        if cursor:
-            cursor.close()
-        if connection:
-            connection.close()
-
-
+def upsert_chat_history(table, **datas):
+    chat = chat_table.query.get_or_404(datas['chat_id'])
+    user = user_table.query.get_or_404(datas['user_id'])
+    msg = message_table(user_id=datas['user_id'], chat_id=datas['chat_id'],
+                        message=datas['message'], is_bot_message=datas['is_bot_message'], 
+                        chat=chat, user=user)
+    db.session.add(msg)
+    db.session.commit()
+    
+    
 @socketio.on('connect')
 def connected():
     global messages
@@ -66,10 +38,10 @@ def connected():
 
 @socketio.on('user_send')
 def handle_user_msg(obj):
-    print(obj)
-    user_id = session['user_id']
-    chat_id = session['chat_id']
-    print('chat2: ',chat_id)
+
+    print(socketio.__dir__)
+    user_id = 5#session['user_id']
+    chat_id = 1#session['chat_id']
     if obj['ai_option'] == 'openai':
         response = get_openai_message(obj['data'])
         ai_id = 1
@@ -87,9 +59,10 @@ def handle_user_msg(obj):
         audio_base64 = base64.b64encode(audio_data).decode('utf-8')
     
     emit('ai_response', {'data': response, 'audio': audio_base64})
-    upsert_chat_history('message_table', chat_id=chat_id,
+
+    upsert_chat_history('message_table', user_id=user_id, chat_id=chat_id,
                         message=obj['data'], is_bot_message=0)
-    upsert_chat_history('message_table', chat_id=chat_id,
+    upsert_chat_history('message_table', user_id=user_id, chat_id=chat_id,
                         message=response, is_bot_message=ai_id)
 
 @socketio.on('audio_data')
@@ -106,7 +79,7 @@ def handle_user_audio(obj):
     print(txt)
     
     emit('user_input', {'data': txt})
-
+    
 def voice2txt(audio_file):
     with open(audio_file, 'rb') as f:
         transcript = client.audio.transcriptions.create(
@@ -172,63 +145,3 @@ def get_openai_message(msg):
     print(apply_chat_template('openai'))
     print('>>>>', response.choices[0].message.content)
     return response.choices[0].message.content
-
-@app.route('/')
-def index():
-    return render_template('login.html')
-
-@app.route('/login', methods=['POST'])
-def login():
-    username = request.form['username']
-    sex = request.form['sex']
-    age = int(request.form['age'])
-
-    # 사용자 정보 유효성 검증 (실제 환경에서는 데이터베이스 조회 등 추가 로직 필요)
-    if username and sex and age:
-        try:
-            connection = oracledb.connect(**oracle_configs.ORACLE_CONFIG)
-            cursor = connection.cursor()
-
-            cursor.execute("SELECT USER_ID FROM USER_TABLE WHERE USER_NAME = :1", (username,))
-            result = cursor.fetchone()
-
-            if result:
-                user_id = result[0]
-            else:
-
-                cursor.execute(
-                    "INSERT INTO USER_TABLE (USER_NAME, SEX, AGE) VALUES (:1, :2, :3)",
-                    (username, sex, age)
-                )
-                connection.commit()
-                cursor.execute("SELECT USER_ID FROM USER_TABLE WHERE USER_NAME = :1", (username,))
-                user_id = cursor.fetchone()[0]
-            print('user_id',user_id)
-            session.clear() 
-            session['user_id'] = user_id  
-            cursor.execute("INSERT INTO CHAT_TABLE (USER_ID) VALUES (:1)", (user_id,))
-            # chat_ids[user_id] = cursor.lastrowid
-            connection.commit()
-            cursor.execute("SELECT CHAT_ID FROM CHAT_TABLE WHERE USER_ID = :1", (user_id,))
-            chat_id = cursor.fetchone()[0]
-            session['chat_id'] = chat_id  
-            print('chat_id: ', chat_id)
-            return redirect(url_for('chat'))
-        except oracledb.DatabaseError as e:
-            print(f"Database error occurred: {e}", file=sys.stderr)
-            if connection:
-                connection.rollback()
-            return "Failed to insert user information. Please try again later."
-        finally:
-            if cursor:
-                cursor.close()
-            if connection:
-                connection.close()
-
-
-@app.route('/chat')
-def chat():
-    return render_template('index.html') 
-
-if __name__ == '__main__':
-    app.run(debug=True)
