@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template
 
 from chatting.models import chat_table, message_table
-from chating import socketio
+from chatting import socketio
 from .utils.chatting_utils import *
 
 bp = Blueprint('chat', __name__, url_prefix='/chat')

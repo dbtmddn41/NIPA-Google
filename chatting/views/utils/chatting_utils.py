@@ -1,7 +1,4 @@
-<<<<<<< HEAD:chatting/views/utils/chatting_utils.py
-=======
 from flask import Flask, request, render_template, redirect, url_for
->>>>>>> ce8f108615e74ee42166e3637e0a4a0349b948f1:app.py
 from openai import OpenAI
 import google.generativeai as genai
 import openai_api_key, gemini_api_key
@@ -10,13 +7,9 @@ from flask import session
 import io, base64
 from pydub import AudioSegment
 
-<<<<<<< HEAD:chatting/views/utils/chatting_utils.py
-from chating import socketio, db
-from chating.models import message_table, chat_table, user_table
+from chatting import socketio, db
+from chatting.models import message_table, chat_table, user_table
 
-=======
-# API 키 설정
->>>>>>> ce8f108615e74ee42166e3637e0a4a0349b948f1:app.py
 client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
 genai.configure(api_key=gemini_api_key.GEMINI_API_KEY)
 messages = []
@@ -145,47 +138,3 @@ def get_openai_message(msg):
     print(apply_chat_template('openai'))
     print('>>>>', response.choices[0].message.content)
     return response.choices[0].message.content
-<<<<<<< HEAD:chatting/views/utils/chatting_utils.py
-=======
-
-@app.route('/')
-def index():
-    return render_template('login.html')  # 초기 페이지는 login.html
-
-@app.route('/login', methods=['POST'])
-def login():
-    username = request.form['username']
-    sex = request.form['sex']
-    age = int(request.form['age'])
-
-    # 사용자 정보 유효성 검증 (실제 환경에서는 데이터베이스 조회 등 추가 로직 필요)
-    if username and sex and age:
-        try:
-            connection = oracledb.connect(**oracle_configs.ORACLE_CONFIG)
-            cursor = connection.cursor()
-            cursor.execute(
-                    "INSERT INTO USER_TABLE (USER_NAME, SEX, AGE) VALUES (:1, :2, :3)",
-                    (username, sex, age)
-                    )
-            connection.commit()  # 변경 사항 커밋
-            return redirect(url_for('chat'))
-        except oracledb.DatabaseError as e:
-            print(f"Database error occurred: {e}", file=sys.stderr)
-            if connection:
-                connection.rollback()
-            return "Failed to insert user information. Please try again later."
-        finally:
-        # Close cursor and connection
-            if cursor:
-                cursor.close()
-            if connection:
-                connection.close()
-
-
-@app.route('/chat')
-def chat():
-    return render_template('index.html') 
-
-if __name__ == '__main__':
-    app.run(debug=True)
->>>>>>> ce8f108615e74ee42166e3637e0a4a0349b948f1:app.py

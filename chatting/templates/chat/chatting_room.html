@@ -4,7 +4,5 @@
             {% for message in messages %}
                 <p>{{ "Assistant" if message.is_bot_message else 'User' }} : {{message.message}}</p>
             {% endfor %}
-    {% else %}
-        <p>질문이 없습니다.</p>
     {% endif %}
 {% endblock %}
