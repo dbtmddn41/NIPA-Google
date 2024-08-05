@@ -248,10 +248,7 @@ def handle_disconnect():
     if 'user_id' in session and 'chat_id' in session:
         user_id = session['user_id']
         chat_id = session['chat_id']
-
-        # ... (disconnect 처리 로직)
-
-        # 연결 종료 직전에 chat_vector 업데이트 (커서 닫기 전에 한 번만 실행)
+        
         connection = None
         cursor = None
         try:
