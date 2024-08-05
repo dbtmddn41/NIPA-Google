@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template
 
-from chating.models import chat_table, message_table
+from chatting.models import chat_table, message_table
 from chating import socketio
 from .utils.chatting_utils import *
 

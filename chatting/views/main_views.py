@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template
 
-from chating.models import user_table, chat_table, message_table
+from chatting.models import user_table, chat_table, message_table
 
 bp = Blueprint('main', __name__, url_prefix='/')
 
