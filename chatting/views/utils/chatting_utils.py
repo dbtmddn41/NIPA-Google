@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, g
 from openai import OpenAI
 import google.generativeai as genai
 import openai_api_key, gemini_api_key
@@ -15,11 +15,12 @@ genai.configure(api_key=gemini_api_key.GEMINI_API_KEY)
 messages = []
 
 def upsert_chat_history(table, **datas):
-    chat = chat_table.query.get_or_404(datas['chat_id'])
-    user = user_table.query.get_or_404(datas['user_id'])
+    # chat = chat_table.query.get_or_404(datas['chat_id'])
+    # user = user_table.query.get_or_404(datas['user_id'])
     msg = message_table(user_id=datas['user_id'], chat_id=datas['chat_id'],
                         message=datas['message'], is_bot_message=datas['is_bot_message'], 
-                        chat=chat, user=user)
+    )
+                        # chat=chat, user=user)
     db.session.add(msg)
     db.session.commit()
     
@@ -33,9 +34,9 @@ def connected():
 
 @socketio.on('user_send')
 def handle_user_msg(obj):
-    print(socketio.__dir__)
-    user_id = 5#session['user_id']
-    chat_id = 1#session['chat_id']
+    print(g, session)
+    user_id = session['user_id']
+    chat_id = session['chat_id']
     if obj['ai_option'] == 'openai':
         response = get_openai_message(obj['data'])
         ai_id = 1
