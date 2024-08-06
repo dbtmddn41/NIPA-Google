@@ -6,7 +6,9 @@ from flask_socketio import emit
 from flask import session
 import io, base64
 from pydub import AudioSegment
-
+from datetime import datetime, timedelta
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask_mail import Mail, Message
 from chatting import socketio, db
 from chatting.models import message_table, chat_table, user_table
 from chatting.views.utils.vector_search import search_similar_chats
@@ -35,6 +37,7 @@ def connected():
 
 @socketio.on('user_send')
 def handle_user_msg(obj):
+
     print(g, session)
     user_id = session['user_id']
     chat_id = session['chat_id']
@@ -57,6 +60,9 @@ def handle_user_msg(obj):
         audio_base64 = base64.b64encode(audio_data).decode('utf-8')
     
     emit('ai_response', {'data': response, 'audio': audio_base64})
+
+
+
     upsert_chat_history('message_table', user_id=user_id, chat_id=chat_id,
                         message=obj['data'], is_bot_message=0)
     upsert_chat_history('message_table', user_id=user_id, chat_id=chat_id,
