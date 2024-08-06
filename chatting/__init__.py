@@ -5,6 +5,7 @@ from flask_socketio import SocketIO
 import config
 import os
 from oracle_configs import ORACLE_CONFIG
+import views.utils.vector_search
 
 
 db = SQLAlchemy()
