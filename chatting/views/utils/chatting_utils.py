@@ -1,4 +1,3 @@
-
 from flask import Flask, request, render_template, redirect, url_for, g
 from openai import OpenAI
 import google.generativeai as genai
@@ -32,8 +31,6 @@ def connected():
     if 'user_id' in session and 'chat_id' in session:
         user_id = session['user_id']
         chat_id = session['chat_id']
-        print('user_id2: ', user_id)
-        print('chat_id2: ', chat_id)
         emit('alert', {'data': '로그인 성공!'})
     else:
         emit('alert', {'data': '로그인 정보가 없습니다.'})

@@ -78,10 +78,10 @@
         
         function sendMessage() {
             const ai_option = document.getElementById('ai_option').value;
-            const data = document.getElementById('message').value;
+            const data = document.getElementById('message-input').value;
             document.getElementById('responseBox').innerHTML += '<p>User: ' + data + '</p>';
             socket.emit('user_send', { data, ai_option });
-            document.getElementById('message').value = '';
+            document.getElementById('message-input').value = '';
             return false;
         }
 
