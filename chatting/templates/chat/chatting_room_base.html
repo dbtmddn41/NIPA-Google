@@ -6,27 +6,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>대화하기</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link rel="stylesheet" href="/static/chatting_room.css" type='text/css'>
 
 </head>
 
 <body>
-    <h1>대화하기</h1>
-    
-    <form onsubmit="return sendMessage();">
-        <select id="ai_option">
-            <option value="openai">openai</option>
-            <option value="gemini">gemini</option>
-            <option value="debugging">하지만 빨랐죠</option>
-        </select>
-        <input type="text" id="message">
-        <input type="submit" value="Send">
-    </form>
-
-    <button id="startRecord">Start Recording</button>
-    <button id="stopRecord" disabled="true">Stop Recording</button>
-    <!--<audio id="audioPlayback" controls></audio>-->
-
-    <div id="conversations"></div>
+    <div class="container">
+        <div class="header">
+            <button id="hello-world" class="nav-button">Hello World</button>
+            <button id="hellow-world" class="nav-button">Hello world</button>
+            <button id="chatbot-streaming" class="nav-button active">Chatbot Streaming</button>
+            <button id="hello-world" class="nav-button">Hello world</button>
+        </div>
+        <div class="chat-container">
+            <div id="responseBox" class="chatbox">
+                {% block content %}
+                {% endblock %}
+            </div>
+            <div class="controls">
+                <button id="startRecord" class="control-button">Start Recording</button>
+                <button id="stopRecord" class="control-button" disabled="true">Stop Recording</button>
+            </div>
+            <form onsubmit="return sendMessage();">
+                <select id="ai_option">
+                    <option value="openai">openai</option>
+                    <option value="gemini">gemini</option>
+                    <option value="debugging">하지만 빨랐죠</option>
+                </select>
+                <div class="input-container">
+                    <input type="text" id="message-input" placeholder="Type a message...">
+                    <button id="send" class="send-button">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script type="text/javascript" charset="utf-8">
         var socket = io();
@@ -37,13 +50,12 @@
         });
 
         socket.on('alert', function (msg) {
-            console.log(msg);
-            document.getElementById('conversations').innerHTML += '<p>Alert: ' + msg.data + '</p>';
+            document.getElementById('responseBox').innerHTML += '<p>Alert: ' + msg.data + '</p>';
         });
 
         socket.on('ai_response', function (msg) {
             console.log(msg);
-            const conversations = document.getElementById('conversations');
+            const conversations = document.getElementById('responseBox');
             conversations.innerHTML += '<p>Assistant: ' + msg.data + '</p>';
             const audioElement = document.createElement("audio");
             audioElement.src = 'data:audio/mp3;base64,'+msg.audio; // 오디오 파일 경로 설정
@@ -60,16 +72,16 @@
             console.log(msg);
             const ai_option = document.getElementById('ai_option').value;
             const data = msg.data;
-            document.getElementById('conversations').innerHTML += '<p>User: ' + data + '</p>';
+            document.getElementById('responseBox').innerHTML += '<p>User: ' + data + '</p>';
             socket.emit('user_send', { data, ai_option });
         })
         
         function sendMessage() {
             const ai_option = document.getElementById('ai_option').value;
-            const data = document.getElementById('message').value;
-            document.getElementById('conversations').innerHTML += '<p>User: ' + data + '</p>';
+            const data = document.getElementById('message-input').value;
+            document.getElementById('responseBox').innerHTML += '<p>User: ' + data + '</p>';
             socket.emit('user_send', { data, ai_option });
-            document.getElementById('message').value = '';
+            document.getElementById('message-input').value = '';
             return false;
         }
 
@@ -112,6 +124,7 @@
                 const base64Audio = event.target.result;
                 socket.emit('audio_data', base64Audio); // Send audio data as base64
             };
+            console.log('send audio')
             reader.readAsDataURL(blob);
         }
 
