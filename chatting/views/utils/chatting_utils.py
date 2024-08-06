@@ -6,7 +6,9 @@ from flask_socketio import emit
 from flask import session
 import io, base64
 from pydub import AudioSegment
-
+from datetime import datetime, timedelta
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask_mail import Mail, Message
 from chatting import socketio, db
 from chatting.models import message_table, chat_table, user_table
 from chatting.views.utils.vector_search import search_similar_chats
@@ -147,3 +149,56 @@ def get_openai_message(msg):
     print(apply_chat_template('openai'))
     print('>>>>', response.choices[0].message.content)
     return response.choices[0].message.content
+
+# 메일 보내는 코드
+# def summarize_conversations(user_id, chat_history):
+#     """Summarizes chat history using OpenAI GPT model."""
+#     prompt = (
+#         f"Summarize the following conversation for a dementia patient's guardian:\n\n"
+#         + chat_history 
+#         + "\n\nSummary:"
+#     )
+#     response = client.chat.completions.create(
+#         model="gpt-3.5-turbo", 
+#         messages=[{"role": "user", "content": prompt}],
+#         temperature=0.7,
+#         max_tokens=200,  
+#     )
+#     return response.choices[0].message.content
+
+# def send_summary_emails():
+#     """Sends summary emails to guardians."""
+#     yesterday = datetime.now() - timedelta(days=1)
+    
+#     # Fetch distinct user IDs who had conversations yesterday
+#     users_with_chats = db.session.query(message_table.user_id).filter(
+#         message_table.timestamp >= yesterday,
+#         message_table.timestamp < yesterday + timedelta(days=1)
+#     ).distinct().all()
+    
+#     for user_id in users_with_chats:
+#         # Fetch guardian email from user_table
+#         guardian_email = user_table.query.get(user_id[0]).guardian_email
+
+#         if guardian_email:
+#             # Fetch chat history for this user and day
+#             chat_history = "\n".join([
+#                 f"{'User' if msg.is_bot_message == 0 else 'AI'}: {msg.message}" 
+#                 for msg in message_table.query.filter_by(user_id=user_id[0]).all()
+#             ])
+            
+#             summary = summarize_conversations(user_id[0], chat_history)
+
+#             msg = Message(
+#                 "Daily Conversation Summary",
+#                 sender="your_app_email@example.com",  # Replace with your app's email
+#                 recipients=[guardian_email]
+#             )
+#             msg.body = f"Here is a summary of yesterday's conversation:\n\n{summary}"
+#             mail.send(msg)
+
+# # Schedule the task (adjust the trigger as needed)
+# scheduler = BackgroundScheduler()
+# scheduler.add_job(send_summary_emails, 'cron', hour=6)  # 6 AM every day
+# scheduler.start()
+
