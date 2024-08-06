@@ -5,7 +5,6 @@ from flask_socketio import SocketIO
 import config
 import os
 from oracle_configs import ORACLE_CONFIG
-import views.utils.vector_search
 
 
 db = SQLAlchemy()
@@ -22,6 +21,7 @@ def create_app():
     from . import models
     
     from .views import main_views, chatting_views, auth_views
+    from .views.utils import vector_search
     app.register_blueprint(main_views.bp)
     app.register_blueprint(chatting_views.bp)
     app.register_blueprint(auth_views.bp)
