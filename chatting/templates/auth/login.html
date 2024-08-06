@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link rel="stylesheet" href="/static/login.css" type='text/css'>
+</head>
+<body>
+    <div class="container">
+        <img src="logo.png" alt="로고 테스트"> 
+        <form method="post">
+            {{ form.csrf_token }}
+            {% include "form_errors.html" %}
+            <div class="input-group">
+                <label for="user_name">ID</label>
+                <input type="text" class="form-control" name="user_name" id="user_name"
+                    value="{{ form.user_name.data or '' }}">
+            </div>
+            <div class="input-group">
+                <label for="password">비밀번호</label>
+                <input type="password" class="form-control" name="password" id="password"
+                    value="{{ form.password.data or '' }}">
+            </div>
+            <button type="submit" class="btn btn-primary">로그인</button>
+        </form>
+    </div>
+
+</body>
+</html>
