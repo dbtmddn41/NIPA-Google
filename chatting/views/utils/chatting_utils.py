@@ -7,8 +7,8 @@ from flask import session
 import io, base64
 from pydub import AudioSegment
 from datetime import datetime, timedelta
-from apscheduler.schedulers.background import BackgroundScheduler
-from flask_mail import Mail, Message
+# from apscheduler.schedulers.background import BackgroundScheduler
+# from flask_mail import Mail, Message
 from chatting import socketio, db
 from chatting.models import message_table, chat_table, user_table
 from chatting.views.utils.vector_search import search_similar_chats
@@ -32,8 +32,19 @@ def upsert_chat_history(table, **datas):
 def connected():
     global messages
     messages = []
-    
-    emit('alert', {'data': 'Connected'})
+    msgs = (
+            message_table.query
+            .filter(message_table.user_id==session['user_id'], message_table.chat_id==session['chat_id'])
+            .order_by(message_table.created_at)
+            .all()
+    )
+    for msg in msgs:
+        if msg.is_bot_message:
+            messages.append(('assistant', msg.message))
+        else:
+            messages.append(('user', msg.message))
+            
+    emit('alert', {'data': messages})
 
 @socketio.on('user_send')
 def handle_user_msg(obj):
@@ -101,12 +112,6 @@ def txt2voice(txt, file_path):
     return response
 
 def apply_chat_template(ai_option='openai'):
-#    history=[{'parts':
-#         {
-#             "text": "You are an assistant for elderly people with dementia. All you have to do is talk to them affectionately, like you would their children. And you must speak in Korean."
-#         },
-#         "role": "user",},
-#     ]
     chat_template = []
     global messages
     for m in messages:

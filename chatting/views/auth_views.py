@@ -34,13 +34,13 @@ def signup():
                 db.session.add(user)
                 db.session.commit()
                                                         # 로그인 성공 시 사용자 정보 메시지 생성 및 저장
-                chat = chat_table(user_id=user.user_id)
-                db.session.add(chat)
-                db.session.commit()
-                session['chat_id'] = chat.chat_id
-                user_info_message = f"사용자 이름: {user.user_name}, 성별: {user.gender}, 나이: {user.age}"
-                upsert_chat_history('message_table', user_id=user.user_id, chat_id=session['chat_id'],
-                                    message=user_info_message, is_bot_message=0)
+               # chat = chat_table(user_id=user.user_id)
+               # db.session.add(chat)
+               # db.session.commit()
+               # session['chat_id'] = chat.chat_id
+               # user_info_message = f"사용자 이름: {user.user_name}, 성별: {user.gender}, 나이: {user.age}"
+               # upsert_chat_history('message_table', user_id=user.user_id, chat_id=session['chat_id'],
+               #                     message=user_info_message, is_bot_message=0)
                 return redirect(url_for('main.main'))
         else:
             flash('이미 존재하는 사용자입니다.')
