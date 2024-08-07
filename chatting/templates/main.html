@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -10,5 +10,47 @@
     <a href="{{ url_for('auth.signup') }}">회원가입</a>
 
 </body>
-</html>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Main</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: sans-serif;
+        }
 
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            background-color: #4CAF50; /* Green */
+            color: white;
+            text-decoration: none;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #3e8e41; /* Darker green */
+        }
+    </style>
+</head>
+<body>
+    <h1>반갑습니다.</h1>
+
+    <a href="{{ url_for('auth.login') }}" class="button">로그인</a>
+    <a href="{{ url_for('auth.signup') }}" class="button">회원가입</a>
+</body>
+</html>
