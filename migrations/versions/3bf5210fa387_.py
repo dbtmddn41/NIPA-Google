@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: d0f3429c39c1
+Revision ID: 3bf5210fa387
 Revises: 
-Create Date: 2024-08-05 09:49:01.640523
+Create Date: 2024-08-07 17:18:28.525326
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'd0f3429c39c1'
+revision = '3bf5210fa387'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -24,12 +24,15 @@ def upgrade():
     op.create_table('user_table',
     sa.Column('user_id', sa.Integer(), server_default=sa.text('user_id_seq.nextval'), nullable=False),
     sa.Column('user_name', sa.String(length=20), nullable=False),
+    sa.Column('password', sa.String(length=200), nullable=False),
     sa.Column('gender', sa.String(length=20), nullable=False),
     sa.Column('age', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.Column('email', sa.String(length=50), server_default='example@google.com', nullable=True),
     sa.PrimaryKeyConstraint('user_id'),
+    sa.UniqueConstraint('email'),
     sa.UniqueConstraint('user_name')
     )
     op.create_table('chat_table',
@@ -39,6 +42,8 @@ def upgrade():
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.Column('is_end', sa.Integer(), server_default='0', nullable=True),
+    sa.Column('summary', sa.String(length=3000), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['user_table.user_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('chat_id')
     )
@@ -46,7 +51,7 @@ def upgrade():
     sa.Column('message_id', sa.Integer(), server_default=sa.text('message_id_seq.nextval'), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('chat_id', sa.Integer(), nullable=True),
-    sa.Column('message', sa.String(length=4000), nullable=False),
+    sa.Column('message', sa.String(length=4000), nullable=True),
     sa.Column('is_bot_message', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
@@ -66,5 +71,4 @@ def downgrade():
     op.execute(sa.schema.DropSequence(sa.Sequence("message_id_seq")))
     op.execute(sa.schema.DropSequence(sa.Sequence("chat_id_seq")))
     op.execute(sa.schema.DropSequence(sa.Sequence("user_id_seq")))
- 
     # ### end Alembic commands ###

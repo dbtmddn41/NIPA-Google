@@ -27,6 +27,11 @@
                    value="{{ form.password2.data or '' }}">
         </div>
         <div class="mb-3">
+            <label for="email">이메일</label>
+            <input type="text" class="form-control" name="email" id="email"
+                   value="{{ form.email.data or '' }}">
+        </div>
+        <div class="mb-3">
             <label for="gender">성별</label>
             <input type="text" class="form-control" name="gender" id="gender"
                    value="{{ form.gender.data or '' }}">

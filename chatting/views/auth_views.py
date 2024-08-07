@@ -30,7 +30,9 @@ def signup():
                 user = user_table(user_name=form.user_name.data,
                                 password=generate_password_hash(form.password1.data),
                                 gender=form.gender.data,
-                                age=form.age.data)
+                                age=form.age.data,
+                                email=form.email.data,
+                                )
                 db.session.add(user)
                 db.session.commit()
                                                         # 로그인 성공 시 사용자 정보 메시지 생성 및 저장

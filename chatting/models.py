@@ -13,7 +13,7 @@ class user_table(db.Model):
     created_at = db.Column(db.DateTime(), nullable=False, default=datetime.now())
     updated_at = db.Column(db.DateTime(), nullable=False, default=datetime.now(), onupdate=datetime.utcnow)
     deleted_at = db.Column(db.DateTime(), nullable=True)
-    email = db.Column(db.String(50), unique=True, nullable=True)
+    email = db.Column(db.String(50), unique=True, nullable=False)
     
 class chat_table(db.Model):
     chat_id_seq = Sequence('chat_id_seq')
@@ -25,6 +25,8 @@ class chat_table(db.Model):
     created_at = db.Column(db.DateTime(), nullable=False, default=datetime.now())
     updated_at = db.Column(db.DateTime(), nullable=False, default=datetime.now(), onupdate=datetime.utcnow)
     deleted_at = db.Column(db.DateTime(), nullable=True)
+    is_end = db.Column(db.Integer, nullable=False, default=0)
+    summary = db.Column(db.String(3000), nullable=True)
     
     
 class message_table(db.Model):

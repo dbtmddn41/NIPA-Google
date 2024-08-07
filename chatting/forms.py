@@ -8,7 +8,7 @@ class UserCreateForm(FlaskForm):
     password2 = PasswordField('비밀번호', validators=[DataRequired()])
     gender = StringField('성별', validators=[DataRequired()])
     age = IntegerField('나이', validators=[DataRequired(), NumberRange(min=0, max=200, message='나이가 그럴 수가 있다고?')])
-    # email = EmailField('이메일', validators=[DataRequired(), Email()])
+    email = EmailField('이메일', validators=[DataRequired(), Email()])
     
 
 class UserLoginForm(FlaskForm):

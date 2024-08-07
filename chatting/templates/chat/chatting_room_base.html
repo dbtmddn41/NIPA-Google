@@ -24,7 +24,7 @@
                 {% endblock %}
             </div>
             <div class="controls">
-                <button id="startRecord" class="control-button">Start Recording</button>
+                <button id="startRecord" class="control-button" {% if g.chat.is_end %} disabled {% endif %}>Start Recording</button>
                 <button id="stopRecord" class="control-button" disabled="true">Stop Recording</button>
             </div>
             <form onsubmit="return sendMessage();">
@@ -35,10 +35,13 @@
                 </select>
                 <div class="input-container">
                     <input type="text" id="message-input" placeholder="Type a message...">
-                    <button id="send" class="send-button">Send</button>
+                    <button id="send" class="send-button" {% if g.chat.is_end %} disabled {% endif %}>Send</button>
                 </div>
             </form>
         </div>
+    </div>
+    <div>
+        <button id='end_chat', class='send-button' {% if g.chat.is_end %} disabled {% endif %}>대화 종료하기</button>
     </div>
 
     <script type="text/javascript" charset="utf-8">
@@ -51,11 +54,12 @@
 
         socket.on('alert', function (msg) {
             console.log(msg)
-            document.getElementById('responseBox').innerHTML += '<p>Alert: ' + 'connected' + '</p>';
+            const responseBox = document.getElementById('responseBox')
+            responseBox.innerHTML = ''
+            responseBox.innerHTML += '<p>Alert: ' + 'connected' + '</p>';
             for(const m of msg.data)
             {
-                console.log(m)
-                document.getElementById('responseBox').innerHTML += '<p>' + m[0] + ': ' + m[1] + '</p>';
+                responseBox.innerHTML += '<p>' + m[0] + ': ' + m[1] + '</p>';
             }
         });
 
@@ -76,6 +80,7 @@
 
         socket.on('user_input', function(msg) {
             console.log(msg);
+
             const ai_option = document.getElementById('ai_option').value;
             const data = msg.data;
             document.getElementById('responseBox').innerHTML += '<p>User: ' + data + '</p>';
@@ -93,6 +98,11 @@
 
         let mediaRecorder;
         let audioChunks = [];
+
+        document.getElementById('end_chat').addEventListener('click', async () => {
+            socket.emit('end_chat');
+            document.getElementById('responseBox').innerHTML += '<p>대화가 종료되었습니다.</p>';
+        });
 
         document.getElementById('startRecord').addEventListener('click', async () => {
             // Request user permission for audio

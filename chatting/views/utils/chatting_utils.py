@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 # from flask_mail import Mail, Message
 from chatting import socketio, db
 from chatting.models import message_table, chat_table, user_table
-from chatting.views.utils.vector_search import search_similar_chats
+# from chatting.views.utils.vector_search import search_similar_chats
 
 client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
 genai.configure(api_key=gemini_api_key.GEMINI_API_KEY)
@@ -30,6 +30,10 @@ def upsert_chat_history(table, **datas):
     
 @socketio.on('connect')
 def connected():
+    # user = user_table.query.get(session.get('user_id'))
+    chat = chat_table.query.get(session.get('chat_id'))
+    if chat.is_end:
+        return
     global messages
     messages = []
     msgs = (
@@ -45,15 +49,26 @@ def connected():
             messages.append(('user', msg.message))
             
     emit('alert', {'data': messages})
+    
+@socketio.on('end_chat')
+def end_chat():
+    chat = chat_table.query.get(session.get('chat_id'))
+    chat.is_end = 1
+    db.session.commit()
+    # return redirect(url_for('chat.chatting_room', user_id=session['user_id'], chat_id=session['chat_id']))
+    
+    
 
 @socketio.on('user_send')
 def handle_user_msg(obj):
-
+    chat = chat_table.query.get(session.get('chat_id'))
+    if chat.is_end:
+        return
     print(g, session)
     user_id = session['user_id']
     chat_id = session['chat_id']
-    similar_chats = search_similar_chats(user_id, obj['data'])
-    print(similar_chats)
+    # similar_chats = search_similar_chats(user_id, obj['data'])
+    # print(similar_chats)
     if obj['ai_option'] == 'openai':
         response = get_openai_message(obj['data'])
         ai_id = 1
