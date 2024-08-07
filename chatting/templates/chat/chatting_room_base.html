@@ -50,7 +50,13 @@
         });
 
         socket.on('alert', function (msg) {
-            document.getElementById('responseBox').innerHTML += '<p>Alert: ' + msg.data + '</p>';
+            console.log(msg)
+            document.getElementById('responseBox').innerHTML += '<p>Alert: ' + 'connected' + '</p>';
+            for(const m of msg.data)
+            {
+                console.log(m)
+                document.getElementById('responseBox').innerHTML += '<p>' + m[0] + ': ' + m[1] + '</p>';
+            }
         });
 
         socket.on('ai_response', function (msg) {
