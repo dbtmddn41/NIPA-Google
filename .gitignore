@@ -7,4 +7,4 @@ Wallet_MLDB
 # dotenv
 .env
 .idea/
-email.config.py
+gmail_configs.py

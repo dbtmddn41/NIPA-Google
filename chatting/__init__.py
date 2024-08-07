@@ -5,11 +5,13 @@ from flask_socketio import SocketIO
 import config
 import os
 from oracle_configs import ORACLE_CONFIG
+from flask_mail import Mail
 
 
 db = SQLAlchemy()
 migrate = Migrate()
 socketio = SocketIO()
+mail = Mail() ### 메일
 
 os.environ['TNS_ADMIN'] = ORACLE_CONFIG['config_dir']
 def create_app():
@@ -24,7 +26,7 @@ def create_app():
     app.register_blueprint(main_views.bp)
     app.register_blueprint(chatting_views.bp)
     app.register_blueprint(auth_views.bp)
-    
+    mail.init_app(app)  ### Flask-Mail 초기화
     socketio.init_app(app)
     
     return app

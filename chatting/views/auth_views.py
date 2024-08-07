@@ -7,6 +7,7 @@ from chatting.forms import UserCreateForm, UserLoginForm
 from chatting.models import user_table, chat_table, message_table
 import functools
 #from FlagEmbedding import BGEM3FlagModel
+from chatting.summary import send_summary_to_gmail 
 
 def upsert_chat_history(table, **datas):
     # chat = chat_table.query.get_or_404(datas['chat_id'])
@@ -14,7 +15,6 @@ def upsert_chat_history(table, **datas):
     msg = message_table(user_id=datas['user_id'], chat_id=datas['chat_id'],
                         message=datas['message'], is_bot_message=datas['is_bot_message'], 
     )
-                        # chat=chat, user=user)
     db.session.add(msg)
     db.session.commit()
 
@@ -83,33 +83,12 @@ def load_logged_in_user():
 
 @bp.route('/logout/')
 def logout():
-    # if 'chat_id' in session:  # 현재 chat_id가 세션에 있는 경우에만 chat_vector 업데이트
-    #     chat_id = session['chat_id']
-    #     print('#########################################################################')
-
-    #     try:
-    #         # chat_id에 해당하는 모든 메시지 가져오기
-    #         messages = (
-    #             db.session.query(message_table.message)
-    #             .filter_by(chat_id=chat_id)
-    #             .order_by(message_table.created_at)
-    #             .all()
-    #         )
-    #         all_messages_text = ' '.join([message.message for message in messages])
-
-    #         # 메시지 내용 임베딩
-    #         chat_vector = model.encode(all_messages_text, batch_size=12, max_length=8192)['dense_vecs']
-    #         chat_vector = chat_vector.tobytes()  # 넘파이 배열을 바이트 배열로 변환
-
-    #         # CHAT_TABLE 업데이트
-    #         db.session.query(chat_table).filter(chat_table.chat_id == 1).update({'chat_vector': chat_vector})
-    #         db.session.commit()
-
-    #     except Exception as e:
-    #         print(f"Database error occurred: {e}", file=sys.stderr)
-    #         db.session.rollback()
-
-    session.clear()  # 세션 초기화
+    ### 메일 보내기
+    if 'user_id' in session and 'chat_id' in session:
+        user_id = session['user_id']
+        chat_id = session['chat_id']
+        send_summary_to_gmail(user_id, chat_id)
+    session.clear()  
     return redirect(url_for('main.main'))
 
 def login_required(view):
