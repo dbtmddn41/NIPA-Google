@@ -85,6 +85,23 @@ def search_similar_chats(user_id, query, top_k=5):
     
     return results
 
+def chat_vector_embedding(chat_id):
+    # 해당 chat_id에 해당하는 message들을 message_table에서 가져온다.
+    messages = message_table.query.filter_by(chat_id=chat_id).all()
+    messages = map(lambda x: x.message, messages)   # 나중에 템플릿 적용
+    messages = ' '.join(messages)   # 한 문장으로 합치기
+
+    # chat_vector를 계산
+    chat_vector = text_embedding_bge(messages)
+
+    # chat_vector를 json으로 변환 후, chat_table에 업데이트
+    chat_vector = json.dumps(chat_vector.tolist())
+    # chat_table.query.filter_by(chat_id=chat_id).update({'chat_vector': chat_vector})   # 바로 update 해도 됨
+
+    return chat_vector, messages   # 나중에 messages는 요약해서 return
+
+
+
 if __name__ == '__main__':
     # test 가장 유사한 3개
     answers = search_similar_chats(1, '내일 날씨 어떤가?', 3)
