@@ -122,6 +122,8 @@ def search_similar_chats(user_id, query, top_k=5):
     for i, idx in enumerate(indices[0]):
         chat_id = chat_ids[idx]
         distance = distances[0][i]
+        if distance > 10:
+            continue
         
         # message table에서 채팅 정보 가져오기
         # chat_info = message_table.query.filter_by(chat_id=chat_id).all()

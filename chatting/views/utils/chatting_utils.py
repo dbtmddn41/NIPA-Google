@@ -96,7 +96,10 @@ def handle_user_msg(obj):
     for similar_chat in similar_chats:
         if similar_chat['summary']:
             summary += similar_chat['summary']
-    summary += 'Above was previous conversation summary. Now, let me answer the question: '
+    if summary == '   #Please refer to the previous main conversation and answer: ':
+        summary = ''
+    else:
+        summary += 'Above was previous conversation summary. Now, let me answer the question: '
     
     if obj['ai_option'] == 'openai':
         response = get_openai_message(summary+obj['data'], user_info)
@@ -197,7 +200,8 @@ def get_openai_message(msg, user_info=None):
         messages=apply_chat_template('openai'),
         temperature=0.7,
         max_tokens=2048,
-        top_p=0.8
+        top_p=0.8,
+        frequency_penalty=1
     )
     messages.pop(0)
     print('>>>>', response.choices[0].message.content)
