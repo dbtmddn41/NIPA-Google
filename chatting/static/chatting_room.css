@@ -67,20 +67,42 @@ body {
     cursor: pointer;
 }
 
+.input-form {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
 .input-container {
     display: flex;
+    align-items: center;
+    width: 93%;
 }
 
 #message-input {
-    flex: 1;
+    flex: 2;
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 5px;
 }
 
+
+#ai_option {
+    margin-right: 20px;
+}
 .send-button {
     padding: 10px 20px;
     background-color: #f0ad4e;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.end-button {
+    padding: 10px 20px;
+    background-color: #d9534f;
     color: white;
     border: none;
     border-radius: 5px;
