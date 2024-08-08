@@ -6,17 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>대화하기</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <link rel="stylesheet" href="/static/chatting_room.css" type='text/css'>
+    <link rel="stylesheet" href="static/chatting_room.css" type='text/css'>
 
 </head>
 
 <body>
     <div class="container">
         <div class="header">
-            <button id="hello-world" class="nav-button">Hello World</button>
-            <button id="hellow-world" class="nav-button">Hello world</button>
             <button id="chatbot-streaming" class="nav-button active">Chatbot Streaming</button>
-            <button id="hello-world" class="nav-button">Hello world</button>
         </div>
         <div class="chat-container">
             <div id="responseBox" class="chatbox">
@@ -27,22 +24,20 @@
                 <button id="startRecord" class="control-button" {% if g.chat.is_end %} disabled {% endif %}>Start Recording</button>
                 <button id="stopRecord" class="control-button" disabled="true">Stop Recording</button>
             </div>
-            <form onsubmit="return sendMessage();">
-                <select id="ai_option">
+            <form onsubmit="return sendMessage();"class="input-form">
+                <select id="ai_option"> 
                     <option value="openai">openai</option>
                     <option value="gemini">gemini</option>
-                    <option value="debugging">하지만 빨랐죠</option>
                 </select>
                 <div class="input-container">
                     <input type="text" id="message-input" placeholder="Type a message...">
                     <button id="send" class="send-button" {% if g.chat.is_end %} disabled {% endif %}>Send</button>
+                    <button id='end_chat', class='end-button' {% if g.chat.is_end %} disabled {% endif %}>대화 종료하기</button>
                 </div>
             </form>
         </div>
     </div>
-    <div>
-        <button id='end_chat', class='send-button' {% if g.chat.is_end %} disabled {% endif %}>대화 종료하기</button>
-    </div>
+
 
     <script type="text/javascript" charset="utf-8">
         var socket = io();
@@ -147,4 +142,3 @@
     </script>
 </body>
 
-</html>
