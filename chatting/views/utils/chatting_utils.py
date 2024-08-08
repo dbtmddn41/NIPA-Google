@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from chatting import socketio, db
 from chatting.models import message_table, chat_table, user_table
 # from chatting.views.utils.vector_search import search_similar_chats, chat_vector_embedding   # 채팅방 종료시 호출 : chat_vector_embedding(chat_id) -> chat_vector, messages
-from chatting.summary import send_summary_to_gmail 
+from chatting.summary import send_summary_to_gmail, summarize_conversation
 
 client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
 genai.configure(api_key=gemini_api_key.GEMINI_API_KEY)
@@ -52,14 +52,18 @@ def connected():
     
 @socketio.on('end_chat')
 def end_chat():
-    
+
     ### 메일 보내기
     if not ('user_id' in session and 'chat_id' in session):
         return 
     chat = chat_table.query.get(session.get('chat_id'))
     if chat.is_end:
         return
-    send_summary_to_gmail(session['user_id'], session['chat_id'])
+    kargs = {
+    'title': '챗봇 대화 요약',
+    'contents': summarize_conversation(session['chat_id'])
+    }
+    send_summary_to_gmail(session['user_id'], session['chat_id'], **kargs)
     chat.is_end = 1
     db.session.commit()
     # return redirect(url_for('chat.chatting_room', user_id=session['user_id'], chat_id=session['chat_id']))
@@ -155,19 +159,11 @@ def get_gemini_message(msg, user_info=None):
     system_instruction="You are an assistant for elderly people with dementia. All you have to do is talk to them affectionately, like you would their children. And you must speak in Korean."
     if user_info:
             system_instruction += f" The user's name is {user_info['user_name']}, gender is {user_info['gender']}, and age is {user_info['age']}. Please remember"
-    # safety_settings = [
-    #     {"category": "HARM_CATEGORY_DEROGATORY", "threshold": 4},
-    #     {"category": "HARM_CATEGORY_TOXICITY", "threshold": 4},
-    #     {"category": "HARM_CATEGORY_VIOLENCE", "threshold": 4},
-    #     {"category": "HARM_CATEGORY_SEXUAL", "threshold": 4},
-    #     {"category": "HARM_CATEGORY_MEDICAL", "threshold": 4},
-    #     {"category": "HARM_CATEGORY_DANGEROUS", "threshold": 4}
-    # ]
 
     model = genai.GenerativeModel('gemini-1.5-flash',
                     system_instruction = system_instruction,
                     generation_config=genai.GenerationConfig(
-                                max_output_tokens=128,
+                                max_output_tokens=2048,
                                 temperature=0.5,
                     ))
     chat = model.start_chat(history=apply_chat_template('gemini'))
@@ -191,7 +187,7 @@ def get_openai_message(msg, user_info=None):
         model="gpt-3.5-turbo",
         messages=apply_chat_template('openai'),
         temperature=0.7,
-        max_tokens=128,
+        max_tokens=2048,
         top_p=0.8
     )
     messages.pop(0)
