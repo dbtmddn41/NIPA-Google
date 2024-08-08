@@ -10,9 +10,8 @@ from datetime import datetime, timedelta
 # from flask_mail import Mail, Message
 from chatting import socketio, db
 from chatting.models import message_table, chat_table, user_table
-# from chatting.views.utils.vector_search import search_similar_chats, chat_vector_embedding   # 채팅방 종료시 호출 : chat_vector_embedding(chat_id) -> chat_vector, messages
+from chatting.views.utils import vector_search
 from chatting.summary import send_mail, summarize_conversation
-
 client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
 genai.configure(api_key=gemini_api_key.GEMINI_API_KEY)
 messages = []
@@ -66,6 +65,12 @@ def end_chat():
     }
     send_mail(session['user_id'], **kargs)
     chat.is_end = 1
+    
+    chat_vector, summary = vector_search.chat_vector_embedding(session['user_id'], session['chat_id'])
+    # chat table의 chat_vector와 summary에 저장
+    chat.chat_vector = chat_vector
+    chat.summary = summary
+    
     db.session.commit()
     # return redirect(url_for('chat.chatting_room', user_id=session['user_id'], chat_id=session['chat_id']))
     
@@ -86,7 +91,7 @@ def handle_user_msg(obj):
         }
     user_id = session['user_id']
     chat_id = session['chat_id']
-    # similar_chats = search_similar_chats(user_id, obj['data'])
+    similar_chats = search_similar_chats(user_id, obj['data'])
     # print(similar_chats)
     if obj['ai_option'] == 'openai':
         response = get_openai_message(obj['data'], user_info)
@@ -105,8 +110,6 @@ def handle_user_msg(obj):
         audio_base64 = base64.b64encode(audio_data).decode('utf-8')
     
     emit('ai_response', {'data': response, 'audio': audio_base64})
-
-
 
     upsert_chat_history('message_table', user_id=user_id, chat_id=chat_id,
                         message=obj['data'], is_bot_message=0)
