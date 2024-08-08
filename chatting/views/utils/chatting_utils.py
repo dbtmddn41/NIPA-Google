@@ -52,12 +52,14 @@ def connected():
     
 @socketio.on('end_chat')
 def end_chat():
+    
     ### 메일 보내기
-    if 'user_id' in session and 'chat_id' in session:
-        user_id = session['user_id']
-        chat_id = session['chat_id']
-        send_summary_to_gmail(user_id, chat_id)
+    if not ('user_id' in session and 'chat_id' in session):
+        return 
     chat = chat_table.query.get(session.get('chat_id'))
+    if chat.is_end:
+        return
+    send_summary_to_gmail(session['user_id'], session['chat_id'])
     chat.is_end = 1
     db.session.commit()
     # return redirect(url_for('chat.chatting_room', user_id=session['user_id'], chat_id=session['chat_id']))
@@ -69,7 +71,6 @@ def handle_user_msg(obj):
     chat = chat_table.query.get(session.get('chat_id'))
     if chat.is_end:
         return
-    print(g, session)
     user_id = session['user_id']
     chat_id = session['chat_id']
     # similar_chats = search_similar_chats(user_id, obj['data'])
@@ -162,6 +163,7 @@ def get_openai_message(msg):
     global messages
     messages.insert(0, ("system", "You are an assistant for elderly people with dementia. All you have to do is talk to them affectionately, like you would their children. And you must speak in Korean."))
     messages.append(('user', msg))
+    print(apply_chat_template('openai'))
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=apply_chat_template('openai'),
@@ -170,6 +172,5 @@ def get_openai_message(msg):
         top_p=0.8
     )
     messages.pop(0)
-    print(apply_chat_template('openai'))
     print('>>>>', response.choices[0].message.content)
     return response.choices[0].message.content

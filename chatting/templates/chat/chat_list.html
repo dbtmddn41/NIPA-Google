@@ -11,7 +11,12 @@
 {% if chatting_rooms %}
     <ul>
     {% for chatting_room in chatting_rooms %}
-        <li><a href="{{ url_for('chat.chatting_room', user_id=chatting_room.user_id, chat_id=chatting_room.chat_id) }}">{{chatting_room.user.user_name}}님의 채팅방 {{loop.index}}</a></li>
+        <li>
+            <a href="{{ url_for('chat.chatting_room', user_id=chatting_room.user_id, chat_id=chatting_room.chat_id) }}">
+            {{chatting_room.user.user_name}}님의 채팅방 {{chatting_room.created_at}} 
+            </a>
+            {% if chatting_room.is_end %} 대화 종료됨 {% else %} 대화 중 {% endif %}
+        </li>
     {% endfor %}
     </ul>
 {% else %}

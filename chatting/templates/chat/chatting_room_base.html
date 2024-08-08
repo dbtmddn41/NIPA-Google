@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>대화하기</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <link rel="stylesheet" href="static/chatting_room.css" type='text/css'>
+    <link rel="stylesheet" href="/static/chatting_room.css" type='text/css'>
 
 </head>
 
@@ -32,9 +32,9 @@
                 <div class="input-container">
                     <input type="text" id="message-input" placeholder="Type a message...">
                     <button id="send" class="send-button" {% if g.chat.is_end %} disabled {% endif %}>Send</button>
-                    <button id='end_chat', class='end-button' {% if g.chat.is_end %} disabled {% endif %}>대화 종료하기</button>
                 </div>
             </form>
+            <button id='end_chat', class='end-button' {% if g.chat.is_end %} disabled {% endif %}>대화 종료하기</button>
         </div>
     </div>
 
@@ -48,7 +48,7 @@
         });
 
         socket.on('alert', function (msg) {
-            console.log(msg)
+            console.log('alert')
             const responseBox = document.getElementById('responseBox')
             responseBox.innerHTML = ''
             responseBox.innerHTML += '<p>Alert: ' + 'connected' + '</p>';
@@ -59,7 +59,7 @@
         });
 
         socket.on('ai_response', function (msg) {
-            console.log(msg);
+            console.log('ai_response');
             const conversations = document.getElementById('responseBox');
             conversations.innerHTML += '<p>Assistant: ' + msg.data + '</p>';
             const audioElement = document.createElement("audio");
@@ -74,7 +74,7 @@
         });
 
         socket.on('user_input', function(msg) {
-            console.log(msg);
+            console.log('user_input');
 
             const ai_option = document.getElementById('ai_option').value;
             const data = msg.data;
@@ -95,6 +95,7 @@
         let audioChunks = [];
 
         document.getElementById('end_chat').addEventListener('click', async () => {
+            console.log('end_chat');
             socket.emit('end_chat');
             document.getElementById('responseBox').innerHTML += '<p>대화가 종료되었습니다.</p>';
         });
@@ -142,3 +143,4 @@
     </script>
 </body>
 
+</html>

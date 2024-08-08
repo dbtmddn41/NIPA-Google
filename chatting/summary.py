@@ -50,10 +50,10 @@ def send_summary_to_gmail(user_id, chat_id):
                 recipients=[guardian_email],
             )
             msg.body = f"채팅 요약:\n\n{summary}"
-            print(user)
-            print(guardian_email)
-            print(chat_id)
-            print(summary)
+            # print(user)
+            # print(guardian_email)
+            # print(chat_id)
+            # print(summary)
             try:
                 mail.send(msg)
             except Exception as e:
