@@ -5,6 +5,7 @@ from telegram import Bot
 from chatting.models import user_table, message_table, chat_table
 import openai_api_key
 from flask_mail import Message
+from chatting import mail
 
 client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
 
@@ -32,7 +33,7 @@ def send_summary_to_gmail(user_id, chat_id):
 
     with current_app.app_context():
         user = user_table.query.get(user_id)
-        guardian_email = user.guardian_email  # 보호자 이메일 주소
+        guardian_email = user.email  # 보호자 이메일 주소
 
         if guardian_email:
             summary = summarize_conversation(chat_id)
@@ -43,6 +44,10 @@ def send_summary_to_gmail(user_id, chat_id):
                 recipients=[guardian_email],
             )
             msg.body = f"채팅 요약:\n\n{summary}"
+            print(user)
+            print(guardian_email)
+            print(chat_id)
+            print(summary)
             try:
                 mail.send(msg)
             except Exception as e:

@@ -1,13 +1,11 @@
 from flask import Blueprint, url_for, render_template, flash, request, session, g
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import redirect
-import sys
 from chatting import db
 from chatting.forms import UserCreateForm, UserLoginForm
 from chatting.models import user_table, chat_table, message_table
 import functools
 #from FlagEmbedding import BGEM3FlagModel
-from chatting.summary import send_summary_to_gmail 
 
 def upsert_chat_history(table, **datas):
     # chat = chat_table.query.get_or_404(datas['chat_id'])
@@ -85,11 +83,6 @@ def load_logged_in_user():
 
 @bp.route('/logout/')
 def logout():
-    ### 메일 보내기
-    if 'user_id' in session and 'chat_id' in session:
-        user_id = session['user_id']
-        chat_id = session['chat_id']
-        send_summary_to_gmail(user_id, chat_id)
     session.clear()  
     return redirect(url_for('main.main'))
 

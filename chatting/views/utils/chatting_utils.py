@@ -1,9 +1,8 @@
-from flask import Flask, request, render_template, redirect, url_for, g
+from flask import Flask, request, render_template, redirect, url_for, g, session
 from openai import OpenAI
 import google.generativeai as genai
 import openai_api_key, gemini_api_key
 from flask_socketio import emit
-from flask import session
 import io, base64
 from pydub import AudioSegment
 from datetime import datetime, timedelta
@@ -12,6 +11,7 @@ from datetime import datetime, timedelta
 from chatting import socketio, db
 from chatting.models import message_table, chat_table, user_table
 from chatting.views.utils.vector_search import search_similar_chats, chat_vector_embedding   # 채팅방 종료시 호출 : chat_vector_embedding(chat_id) -> chat_vector, messages
+from chatting.summary import send_summary_to_gmail 
 
 client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
 genai.configure(api_key=gemini_api_key.GEMINI_API_KEY)
@@ -52,6 +52,11 @@ def connected():
     
 @socketio.on('end_chat')
 def end_chat():
+    ### 메일 보내기
+    if 'user_id' in session and 'chat_id' in session:
+        user_id = session['user_id']
+        chat_id = session['chat_id']
+        send_summary_to_gmail(user_id, chat_id)
     chat = chat_table.query.get(session.get('chat_id'))
     chat.is_end = 1
     db.session.commit()
