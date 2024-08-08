@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 # from flask_mail import Mail, Message
 from chatting import socketio, db
 from chatting.models import message_table, chat_table, user_table
-from chatting.views.utils.vector_search import search_similar_chats, chat_vector_embedding   # 채팅방 종료시 호출 : chat_vector_embedding(chat_id) -> chat_vector, messages
+# from chatting.views.utils.vector_search import search_similar_chats, chat_vector_embedding   # 채팅방 종료시 호출 : chat_vector_embedding(chat_id) -> chat_vector, messages
 from chatting.summary import send_summary_to_gmail 
 
 client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
@@ -52,12 +52,14 @@ def connected():
     
 @socketio.on('end_chat')
 def end_chat():
+    
     ### 메일 보내기
-    if 'user_id' in session and 'chat_id' in session:
-        user_id = session['user_id']
-        chat_id = session['chat_id']
-        send_summary_to_gmail(user_id, chat_id)
+    if not ('user_id' in session and 'chat_id' in session):
+        return 
     chat = chat_table.query.get(session.get('chat_id'))
+    if chat.is_end:
+        return
+    send_summary_to_gmail(session['user_id'], session['chat_id'])
     chat.is_end = 1
     db.session.commit()
     # return redirect(url_for('chat.chatting_room', user_id=session['user_id'], chat_id=session['chat_id']))
@@ -184,6 +186,7 @@ def get_openai_message(msg, user_info=None):
         system_message += f" The user's name is {user_info['user_name']}, gender is {user_info['gender']}, and age is {user_info['age']}. Please remember"
     messages.insert(0, ("system", system_message))
     messages.append(('user', msg))
+    print(apply_chat_template('openai'))
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=apply_chat_template('openai'),
@@ -192,6 +195,5 @@ def get_openai_message(msg, user_info=None):
         top_p=0.8
     )
     messages.pop(0)
-    print(apply_chat_template('openai'))
     print('>>>>', response.choices[0].message.content)
     return response.choices[0].message.content

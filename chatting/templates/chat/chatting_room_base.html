@@ -13,10 +13,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <button id="hello-world" class="nav-button">Hello World</button>
-            <button id="hellow-world" class="nav-button">Hello world</button>
             <button id="chatbot-streaming" class="nav-button active">Chatbot Streaming</button>
-            <button id="hello-world" class="nav-button">Hello world</button>
         </div>
         <div class="chat-container">
             <div id="responseBox" class="chatbox">
@@ -27,22 +24,20 @@
                 <button id="startRecord" class="control-button" {% if g.chat.is_end %} disabled {% endif %}>Start Recording</button>
                 <button id="stopRecord" class="control-button" disabled="true">Stop Recording</button>
             </div>
-            <form onsubmit="return sendMessage();">
-                <select id="ai_option">
+            <form onsubmit="return sendMessage();"class="input-form">
+                <select id="ai_option"> 
                     <option value="openai">openai</option>
                     <option value="gemini">gemini</option>
-                    <option value="debugging">하지만 빨랐죠</option>
                 </select>
                 <div class="input-container">
                     <input type="text" id="message-input" placeholder="Type a message...">
                     <button id="send" class="send-button" {% if g.chat.is_end %} disabled {% endif %}>Send</button>
                 </div>
             </form>
+            <button id='end_chat', class='end-button' {% if g.chat.is_end %} disabled {% endif %}>대화 종료하기</button>
         </div>
     </div>
-    <div>
-        <button id='end_chat', class='send-button' {% if g.chat.is_end %} disabled {% endif %}>대화 종료하기</button>
-    </div>
+
 
     <script type="text/javascript" charset="utf-8">
         var socket = io();
@@ -53,7 +48,7 @@
         });
 
         socket.on('alert', function (msg) {
-            console.log(msg)
+            console.log('alert')
             const responseBox = document.getElementById('responseBox')
             responseBox.innerHTML = ''
             responseBox.innerHTML += '<p>Alert: ' + 'connected' + '</p>';
@@ -64,7 +59,7 @@
         });
 
         socket.on('ai_response', function (msg) {
-            console.log(msg);
+            console.log('ai_response');
             const conversations = document.getElementById('responseBox');
             conversations.innerHTML += '<p>Assistant: ' + msg.data + '</p>';
             const audioElement = document.createElement("audio");
@@ -79,7 +74,7 @@
         });
 
         socket.on('user_input', function(msg) {
-            console.log(msg);
+            console.log('user_input');
 
             const ai_option = document.getElementById('ai_option').value;
             const data = msg.data;
@@ -100,6 +95,7 @@
         let audioChunks = [];
 
         document.getElementById('end_chat').addEventListener('click', async () => {
+            console.log('end_chat');
             socket.emit('end_chat');
             document.getElementById('responseBox').innerHTML += '<p>대화가 종료되었습니다.</p>';
         });

@@ -44,7 +44,16 @@ def chatting_room(user_id, chat_id):
         chat = chat_table.query.get_or_404(chat_id)
         session['chat_id'] = chat.chat_id
         g.chat = chat
-    return render_template('chat/chatting_room.html', messages=[], g=g)
+        if chat.is_end:
+            messages = (
+                    message_table.query
+                    .filter(message_table.user_id==user_id, message_table.chat_id==chat_id)
+                    .order_by(message_table.created_at.desc())
+                    .all()
+            )
+        else:
+            messages=[]
+    return render_template('chat/chatting_room.html', messages=messages, g=g)
 
 @bp.route('/create_room/')
 @login_required
