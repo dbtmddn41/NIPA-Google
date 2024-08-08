@@ -40,7 +40,7 @@
 
 
     <script type="text/javascript" charset="utf-8">
-        var socket = io();
+        var socket = io('/chatting_room');
 
         socket.on('connect', function () {
             //socket.emit('connect', { data: 'I\'m connected!' });

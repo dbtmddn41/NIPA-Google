@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, g, request
 from chatting.models import chat_table, message_table
 from chatting import socketio
 from .utils.chatting_utils import *
+from .utils.notification_utils import *
 from chatting.views.auth_views import login_required
 import numpy as np
 
@@ -18,21 +19,7 @@ def chat_list(user_id):
                 .filter(chat_table.user_id==user_id)
                 .order_by(chat_table.created_at.desc())
     )
-    ################################
-    i = 0
-    for chat_room in chat_rooms:
-        print(chat_room.chat_id, chat_room.created_at)
-        chat_room.chat_vector = np.array([i] * 1024) # 임시
-        i += 1
-    db.session.commit()
-    chat_rooms = (
-                chat_table.query
-                .filter(chat_table.user_id==user_id)
-                .order_by(chat_table.created_at.desc())
-    )
-    for chat_room in chat_rooms:
-        print(chat_room.chat_id, chat_room.chat_vector)
-    ################################
+    socketio.emit('notification', {'message': '새로운 알림이 있습니다!'})
     return render_template('chat/chat_list.html', chatting_rooms=chat_rooms, g=g)
 
 @bp.route('/chatting_room/<int:user_id>/<int:chat_id>')

@@ -27,10 +27,11 @@ def upsert_chat_history(table, **datas):
     db.session.add(msg)
     db.session.commit()
     
-    
-@socketio.on('connect')
+
+@socketio.on('connect', namespace='/chatting_room')
 def connected():
     # user = user_table.query.get(session.get('user_id'))
+    print('connected!')
     chat = chat_table.query.get(session.get('chat_id'))
     if chat.is_end:
         return
@@ -50,7 +51,7 @@ def connected():
             
     emit('alert', {'data': messages})
     
-@socketio.on('end_chat')
+@socketio.on('end_chat', namespace='/chatting_room')
 def end_chat():
     
     ### 메일 보내기
@@ -66,7 +67,7 @@ def end_chat():
     
     
 
-@socketio.on('user_send')
+@socketio.on('user_send', namespace='/chatting_room')
 def handle_user_msg(obj):
     chat = chat_table.query.get(session.get('chat_id'))
     if chat.is_end:
@@ -100,7 +101,7 @@ def handle_user_msg(obj):
     upsert_chat_history('message_table', user_id=user_id, chat_id=chat_id,
                         message=response, is_bot_message=ai_id)
 
-@socketio.on('audio_data')
+@socketio.on('audio_data', namespace='/chatting_room')
 def handle_user_audio(obj):
     audio_obj = base64.b64decode(obj.split(',')[-1])
     audio_io = io.BytesIO(audio_obj)

@@ -4,26 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>채팅방 리스트</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 </head>
 
 <body>
     <h1>채팅방 리스트</h1>
-{% if chatting_rooms %}
-    <ul>
-    {% for chatting_room in chatting_rooms %}
-        <li>
-            <a href="{{ url_for('chat.chatting_room', user_id=chatting_room.user_id, chat_id=chatting_room.chat_id) }}">
-            {{chatting_room.user.user_name}}님의 채팅방 {{chatting_room.created_at}} 
-            </a>
-            {% if chatting_room.is_end %} 대화 종료됨 {% else %} 대화 중 {% endif %}
-        </li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>채팅방이 없습니다.</p>
-{% endif %}
-<a href="{{ url_for('auth.logout') }}">로그아웃</a>
-<a href="{{ url_for('chat.create_room', user_id=g.user.user_id) }}">채팅방 만들기</a>
+    {% if chatting_rooms %}
+        <ul>
+        {% for chatting_room in chatting_rooms %}
+            <li>
+                <a href="{{ url_for('chat.chatting_room', user_id=chatting_room.user_id, chat_id=chatting_room.chat_id) }}">
+                {{chatting_room.user.user_name}}님의 채팅방 {{chatting_room.created_at}} 
+                </a>
+                {% if chatting_room.is_end %} 대화 종료됨 {% else %} 대화 중 {% endif %}
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>채팅방이 없습니다.</p>
+    {% endif %}
+    <a href="{{ url_for('auth.logout') }}">로그아웃</a>
+    <a href="{{ url_for('chat.create_room', user_id=g.user.user_id) }}">채팅방 만들기</a>
+    
+    <script type="text/javascript" charset="utf-8">
+
+        var socket = io('/notification');
+
+        socket.on('connect', function () {
+            console.log('connect notification');
+        });
+
+
+        socket.on('notification', function(data) {
+            if (Notification.permission === 'granted') {
+                showNotification(data.message);
+            } else if (Notification.permission !== 'denied') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        showNotification(data.message);
+                    }
+                });
+            }
+        });
+
+        function showNotification(message) {
+            var notification = new Notification(message);
+            notification.onclick = function() {
+                // 서버에 알림 클릭 이벤트를 전송합니다.
+                socket.emit('notification_clicked', {message: message});
+
+                document.location.reload();
+            };
+        }
+    </script>
 </body>
 
 </html>
