@@ -65,12 +65,12 @@ def end_chat():
     }
     send_mail(session['user_id'], **kargs)
     chat.is_end = 1
-    
+    print('============================')
     chat_vector, summary = vector_search.chat_vector_embedding(session['user_id'], session['chat_id'])
     # chat table의 chat_vector와 summary에 저장
     chat.chat_vector = chat_vector
     chat.summary = summary
-    
+    print('Save Done')
     db.session.commit()
     # return redirect(url_for('chat.chatting_room', user_id=session['user_id'], chat_id=session['chat_id']))
     
@@ -91,13 +91,18 @@ def handle_user_msg(obj):
         }
     user_id = session['user_id']
     chat_id = session['chat_id']
-    similar_chats = search_similar_chats(user_id, obj['data'])
-    # print(similar_chats)
+    similar_chats = vector_search.search_similar_chats(user_id, obj['data'])
+    summary = '   #Please refer to the previous main conversation and answer: '
+    for similar_chat in similar_chats:
+        if similar_chat['summary']:
+            summary += similar_chat['summary']
+    summary += 'Above was previous conversation summary. Now, let me answer the question: '
+    
     if obj['ai_option'] == 'openai':
-        response = get_openai_message(obj['data'], user_info)
+        response = get_openai_message(summary+obj['data'], user_info)
         ai_id = 1
     elif obj['ai_option'] == 'gemini':
-        response = get_gemini_message(obj['data'], user_info)
+        response = get_gemini_message(summary+obj['data'], user_info)
         ai_id = 2
     else:
         response = "어쩔티비 안물안궁"

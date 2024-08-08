@@ -14,6 +14,8 @@ import numpy as np
 import faiss
 
 from chatting.models import chat_table, message_table
+from openai import OpenAI
+import openai_api_key
 
 warnings.filterwarnings('ignore')
 
@@ -22,27 +24,53 @@ model = BGEM3FlagModel('BAAI/bge-m3', use_fp16=True)
 def text_embedding_bge(text):
     embedding = model.encode(text, batch_size=12, max_length=8192)['dense_vecs']
     return embedding
+client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
 
 # summary model : gemma2 2b
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 summary_tokenizer = AutoTokenizer.from_pretrained("google/gemma-2-2b-it")
 summary_model = AutoModelForCausalLM.from_pretrained(
     "google/gemma-2-2b-it",
     device_map="auto",
     torch_dtype=torch.bfloat16,
-)
+).to(device)
 
 def summarize(text):
+    
     # user_prompt = "Summarize the following text in one sentence: " + text
     user_prompt = 'The following text is a conversation with a user. Please summarize it into key points so that you can remember it later.' + text
     messages = [
         {"role": "user", "content": user_prompt}
     ]
     input_ids = summary_tokenizer.apply_chat_template(messages, return_tensors="pt", return_dict=True).to(device)
+    print('2')
     outputs = summary_model.generate(**input_ids, max_new_tokens=2048)   # max_new_tokens=256
+    print('3')
     output = summary_tokenizer.decode(outputs[0])
+    print('4')
     return output
 
+def summarize_conversation(chat_id):
+    """주어진 chat_id의 대화 내용을 요약합니다."""
+    messages = message_table.query.filter_by(chat_id=chat_id).all()
+    conversation_text = ""
+
+    for m in messages:
+        message = m.message
+        role = "Assistant" if m.is_bot_message else "User"
+        conversation_text += f"{role}: {message}\n" 
+
+    system_prompt = f"The following text is a conversation with a user. Please summarize it into key points so that you can remember it later."
+
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "system", "content": system_prompt},
+                  {"role": "user", "content": f"{conversation_text}\n\nSummary:"}],
+        temperature=0.7,
+        max_tokens=2048,
+    )
+    return response.choices[0].message.content
 # Oracle DB 연결
 # connection = oracledb.connect(**oracle_configs.ORACLE_CONFIG)
 # print("Successfully connected to Oracle Database")
@@ -115,18 +143,20 @@ def search_similar_chats(user_id, query, top_k=5):
 # chat table의 summary를 embedding 하고 chat_vector와 요약 text를 반환
 def chat_vector_embedding(user_id, chat_id):
     # 해당 chat_id에 해당하는 message들을 message_table에서 가져온다.
-    messages = message_table.query.filter_by(chat_id=chat_id).all()
-    messages = map(lambda x: x.message, messages)   # 나중에 템플릿 적용
-    messages = ' '.join(messages)   # 한 문장으로 합치기
+    # messages = message_table.query.filter_by(chat_id=chat_id).all()
+    # messages = map(lambda x: x.message, messages)   # 나중에 템플릿 적용
+    # messages = ' '.join(messages)   # 한 문장으로 합치기
 
-    # message 요약
-    messages = summarize(messages)
+    # # message 요약
+    # messages = summarize(messages)
+    messages = summarize_conversation(chat_id)
+    print('end')
 
     # chat_vector를 계산
     chat_vector = text_embedding_bge(messages)
-
+    print('Embedding Done')
     # chat_vector를 json으로 변환 후, chat_table에 업데이트
-    chat_vector = json.dumps(chat_vector.tolist())
+    # chat_vector = json.dumps(chat_vector.tolist())
     # chat_table.query.filter_by(chat_id=chat_id).update({'chat_vector': chat_vector})   # 바로 update 해도 됨
 
     return chat_vector, messages   # 나중에 messages는 요약해서 return

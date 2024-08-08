@@ -1,7 +1,6 @@
 from flask import current_app
 from openai import OpenAI
 from datetime import datetime, timedelta
-from telegram import Bot
 from chatting.models import user_table, message_table, chat_table
 import openai_api_key
 from flask_mail import Message
