@@ -70,15 +70,22 @@ def handle_user_msg(obj):
     if chat.is_end:
         return
     print(g, session)
+    user = user_table.query.get(session['user_id'])
+    if user:
+        user_info = {
+            'user_name': user.user_name,
+            'gender': user.gender,
+            'age': user.age
+        }
     user_id = session['user_id']
     chat_id = session['chat_id']
     # similar_chats = search_similar_chats(user_id, obj['data'])
     # print(similar_chats)
     if obj['ai_option'] == 'openai':
-        response = get_openai_message(obj['data'])
+        response = get_openai_message(obj['data'], user_info)
         ai_id = 1
     elif obj['ai_option'] == 'gemini':
-        response = get_gemini_message(obj['data'])
+        response = get_gemini_message(obj['data'], user_info)
         ai_id = 2
     else:
         response = "어쩔티비 안물안궁"
@@ -141,10 +148,22 @@ def apply_chat_template(ai_option='openai'):
             chat_template.append({'role': m[0] if m[0] == 'user' else 'model', 'parts': m[1]})
     return chat_template
 
-def get_gemini_message(msg):
+def get_gemini_message(msg, user_info=None):
     # Create a chat completion
+    system_instruction="You are an assistant for elderly people with dementia. All you have to do is talk to them affectionately, like you would their children. And you must speak in Korean."
+    if user_info:
+            system_instruction += f" The user's name is {user_info['user_name']}, gender is {user_info['gender']}, and age is {user_info['age']}. Please remember"
+    # safety_settings = [
+    #     {"category": "HARM_CATEGORY_DEROGATORY", "threshold": 4},
+    #     {"category": "HARM_CATEGORY_TOXICITY", "threshold": 4},
+    #     {"category": "HARM_CATEGORY_VIOLENCE", "threshold": 4},
+    #     {"category": "HARM_CATEGORY_SEXUAL", "threshold": 4},
+    #     {"category": "HARM_CATEGORY_MEDICAL", "threshold": 4},
+    #     {"category": "HARM_CATEGORY_DANGEROUS", "threshold": 4}
+    # ]
+
     model = genai.GenerativeModel('gemini-1.5-flash',
-                    system_instruction="You are an assistant for elderly people with dementia. All you have to do is talk to them affectionately, like you would their children. And you must speak in Korean.",
+                    system_instruction = system_instruction,
                     generation_config=genai.GenerationConfig(
                                 max_output_tokens=128,
                                 temperature=0.5,
@@ -157,10 +176,13 @@ def get_gemini_message(msg):
     return response.text
 
 
-def get_openai_message(msg):
+def get_openai_message(msg, user_info=None):
     # Create a chat completion
     global messages
-    messages.insert(0, ("system", "You are an assistant for elderly people with dementia. All you have to do is talk to them affectionately, like you would their children. And you must speak in Korean."))
+    system_message = "You are an assistant for elderly people with dementia. All you have to do is talk to them affectionately, like you would their children. And you must speak in Korean."
+    if user_info:
+        system_message += f" The user's name is {user_info['user_name']}, gender is {user_info['gender']}, and age is {user_info['age']}. Please remember"
+    messages.insert(0, ("system", system_message))
     messages.append(('user', msg))
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
