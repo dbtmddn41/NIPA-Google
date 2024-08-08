@@ -30,24 +30,25 @@ def summarize_conversation(chat_id):
     )
     return response.choices[0].message.content
 
-def send_summary_to_gmail(user_id, chat_id, **kargs):
+def send_mail(user_id, **kwargs):
     """요약된 대화 내용을 해당 사용자의 Gmail로 전송합니다."""
-
+    print(user_id, kwargs)
     with current_app.app_context():
         user = user_table.query.get(user_id)
         guardian_email = user.email
-
+        
         if guardian_email:
-            if 'contents' in kargs:
+            if 'contents' in kwargs:
 
                 msg = Message(
-                    kargs["title"],
+                    kwargs["title"],
                     sender=current_app.config['MAIL_USERNAME'],
                     recipients=[guardian_email],
                 )
-                msg.body = f"\n{kargs['contents']}"
+                msg.body = f"\n{kwargs['contents']}"
 
                 try:
+                    print('send to',guardian_email)
                     mail.send(msg)
                 except Exception as e:
                     print(f"Failed to send email: {e}")

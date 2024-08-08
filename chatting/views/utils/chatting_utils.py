@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from chatting import socketio, db
 from chatting.models import message_table, chat_table, user_table
 # from chatting.views.utils.vector_search import search_similar_chats, chat_vector_embedding   # 채팅방 종료시 호출 : chat_vector_embedding(chat_id) -> chat_vector, messages
-from chatting.summary import send_summary_to_gmail, summarize_conversation
+from chatting.summary import send_mail, summarize_conversation
 
 client = OpenAI(api_key=openai_api_key.OPENAI_API_KEY)
 genai.configure(api_key=gemini_api_key.GEMINI_API_KEY)
@@ -64,7 +64,7 @@ def end_chat():
     'title': '챗봇 대화 요약',
     'contents': summarize_conversation(session['chat_id'])
     }
-    send_summary_to_gmail(session['user_id'], session['chat_id'], **kargs)
+    send_mail(session['user_id'], **kargs)
     chat.is_end = 1
     db.session.commit()
     # return redirect(url_for('chat.chatting_room', user_id=session['user_id'], chat_id=session['chat_id']))

@@ -29,13 +29,23 @@
     <script type="text/javascript" charset="utf-8">
 
         var socket = io('/notification');
+        var notification_num = 0;
 
         socket.on('connect', function () {
             console.log('connect notification');
         });
 
+        function send_notification() {
+            socket.emit('send_notification');
+        }
+
+        window.onload = function() {
+            setInterval(send_notification, 3600000);
+        }
 
         socket.on('notification', function(data) {
+            console.log('notification')
+            notification_num += 1;
             if (Notification.permission === 'granted') {
                 showNotification(data.message);
             } else if (Notification.permission !== 'denied') {
@@ -45,15 +55,20 @@
                     }
                 });
             }
+            if (notification_num > 3)
+            {
+                socket.emit('send_mail');
+                notification_num = 0;
+            }
         });
 
         function showNotification(message) {
             var notification = new Notification(message);
             notification.onclick = function() {
-                // 서버에 알림 클릭 이벤트를 전송합니다.
-                socket.emit('notification_clicked', {message: message});
-
-                document.location.reload();
+            
+                notification.close();
+                notification_num -= 1;
+                //document.location.reload();
             };
         }
     </script>

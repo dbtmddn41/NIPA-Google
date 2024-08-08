@@ -1,3 +1,6 @@
+
+# import eventlet
+# eventlet.monkey_patch(thread=True, time=True)
 from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -30,6 +33,5 @@ def create_app():
     mail.init_app(app)  ### Flask-Mail 초기화
     socketio.init_app(app)
     scheduler.init_app(app)
-    scheduler.start()
     
     return app
