@@ -13,16 +13,22 @@ def summarize_conversation(chat_id):
     """주어진 chat_id의 대화 내용을 요약합니다."""
     messages = message_table.query.filter_by(chat_id=chat_id).all()
     conversation_text = ""
-    for i in range(0, len(messages), 2):  # 두 개씩 묶어서 처리
-        user_message = messages[i].message
-        ai_message = messages[i + 1].message if i + 1 < len(messages) else ""  # AI 메시지가 없을 경우 빈 문자열
-        conversation_text += f"User: {user_message}\nAI: {ai_message}\n" 
+    # for i in range(0, len(messages), 2):  # 두 개씩 묶어서 처리
+    #     user_message = messages[i].message
+    #     ai_message = messages[i + 1].message if i + 1 < len(messages) else ""  # AI 메시지가 없을 경우 빈 문자열
+    #     conversation_text += f"User: {user_message}\nAI: {ai_message}\n" 
+        
+    for m in messages:  # 두 개씩 묶어서 처리
+        message = m.message
+        role = "Assistant" if m.is_bot_message else "User"  # AI 메시지가 없을 경우 빈 문자열
+        conversation_text += f"{role}: {message}\n" 
 
-    prompt = f"Summarize the following conversation in Korean for a dementia patient's guardian:\n\n{conversation_text}\n\nSummary:"
+    system_prompt = f"Diagnose the user's health based on the conversations you've had with them and summarize what you've talked about today. You must write in Korean."
 
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "system", "content": system_prompt},
+                  {"role": "user", "content": f"{conversation_text}\n\nSummary:"}],
         temperature=0.7,
         max_tokens=200,  # 요약 길이 조절 가능
     )
