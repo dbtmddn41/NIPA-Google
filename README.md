@@ -36,7 +36,6 @@ https://kostat.go.kr/board.es?mid=a10301010000&bid=10820&list_no=427252&act=view
 ## 4. 기술 구현 방안
 
 - **Open AI API 또는 유사한 LLM API 활용**
-- **LangChain을 통한 대화 관리 및 데이터 처리**
 - **대화 내용의 데이터베이스화**
 - **사용자 정보 및 주요 이벤트 정보의 Vector DB 구축**
 - **RAG (Retrieval-Augmented Generation) 기술을 통한 맞춤형 대화 생성**
